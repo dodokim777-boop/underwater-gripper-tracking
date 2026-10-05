@@ -63,9 +63,6 @@ MyDrive/8월연구/                 ← experiment.data_root
 └── results/<experiment.name>/    ← 02 · 03의 결과가 자동으로 생김
 ```
 
-다른 사람에게 넘길 때: 데이터 폴더를 공유(뷰어)하고, 받는 사람은 공유 폴더를 `내 드라이브`에
-**바로가기 추가**한다. 결과는 쓰기 권한이 있어야 하므로 받는 사람은 `config.yaml`을 자기 드라이브에 복사하고,
-`outputs.output_root`를 자기 드라이브의 절대경로(예: `/content/drive/MyDrive/my_results`)로 바꾼다.
 
 ### 2. 노트북 실행
 
