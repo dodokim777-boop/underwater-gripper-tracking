@@ -11,7 +11,7 @@ __pycache__/
 *.npz
 *.xlsx
 *.csv
-results/
+result/
 runs/
 
 # Test data for edit_check
