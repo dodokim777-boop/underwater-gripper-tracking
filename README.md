@@ -1,8 +1,9 @@
+"이제 너한테 부탁할 것들을 적어볼게, 쌍따옴표안에 있는문장을 체크하면서 고쳐줘, 우선 문장을 다 다듬고 영어로 바꿔보자"
 # 수중 그리퍼 물체 3D 추적 (상단 · 정면 2카메라)
 
 상단 카메라와 정면 카메라 영상에서 YOLO로 물체를 검출하고, 수면·정면 벽의 굴절을 보정한 삼각측량으로
 그리퍼 중심 기준 3D 좌표와 프레임별 속도를 구한다. 한쪽 카메라에서 물체가 가려진 구간은 남은 카메라의
-굴절 광선과 비관측 축 추정으로 복원한다.
+굴절 광선과 비관측 축 추정으로 복원한다."이건오케이 영어로 바꾸자"
 
 | 노트북 | 내용 | GPU | 실행 시점 | Colab |
 |---|---|---|---|---|
@@ -12,7 +13,7 @@
 
 > 저장소를 올린 뒤 이 파일과 세 노트북 0번 셀의 `YOUR_ID`(와 저장소 이름이 다르면 `underwater-gripper-tracking`)를 실제 값으로 바꾼다.
 
-## 처리 흐름
+## 처리 흐름 "처리 흐름을 영어로 바꾸고, 시각화가 너무 난잡해, 좀 더 간결하고 이상한 색 쓰지말고 또 선들이 너무 휘어있어 블럭형태로 따다닥 되면 좋겠네"
 
 ```mermaid
 flowchart TB
@@ -54,7 +55,7 @@ flowchart TB
 데이터는 GitHub에 올리지 않고 Google Drive에 둔다. 예시 구조:
 
 ```
-MyDrive/8월연구/                 ← experiment.data_root
+MyDrive/files/                 ← experiment.data_root
 ├── config.yaml                  ← 이 저장소의 config.yaml을 복사해 수정
 ├── 0812실험top/…/top5.MP4        ← 상단 영상
 ├── 0812fro/fro5.mp4              ← 정면 영상
@@ -67,9 +68,9 @@ MyDrive/8월연구/                 ← experiment.data_root
 ### 2. 노트북 실행
 
 1. 위 표의 Colab 배지를 누른다. (02는 `런타임 → 런타임 유형 변경 → T4 GPU`)
-2. **0번 셀**: 저장소 받기, 라이브러리 설치, Drive 연결. Drive 접근 허용 창이 뜨면 허용한다.
+2. **0번 셀**: 저장소 받기, 라이브러리 설치, Drive 연결. Drive 접근 허용 창이 뜨면 허용한다."이정도의 너무 당연한 것들은 설명을 좀 빼자, 핵심적인 부분만 설명하자"
 3. **1번 셀**: `CONFIG_PATH`에 Drive의 config.yaml 경로를 넣고 실행한다. 파일이 없으면 템플릿을 그 위치에 복사하고 멈춘다.
-   왼쪽 파일 패널에서 config.yaml을 더블클릭해 수정한 뒤 다시 실행한다.
+   왼쪽 파일 패널에서 config.yaml을 더블클릭해 수정한 뒤 다시 실행한다."더블클릭해 이런말도 너무 과하잖아"
    이 셀이 경로 존재 여부와 값의 범위를 점검하고, 문제가 있으면 고칠 항목을 알려준다.
 4. 나머지 셀을 위에서부터 실행한다.
 
@@ -80,8 +81,8 @@ MyDrive/8월연구/                 ← experiment.data_root
 
 | 등급 | 항목 | 내용 |
 |---|---|---|
-| **필수** | `experiment.name` | 결과 폴더 이름. 실험마다 다르게 |
-| **필수** | `experiment.data_root` | 이 실험 데이터가 있는 Drive 폴더 |
+| **필수** | `experiment.name` | 결과 폴더 이름 |
+| **필수** | `experiment.data_root` | 이 실험 데이터 Drive 폴더 |
 | **필수** | `inputs.top_video`, `inputs.front_video` | 프레임 정렬된 두 영상 |
 | **필수** | `water.surface_z_cm` | 바닥(ID0 마커 평면)으로부터 실제 물 높이 [cm] |
 | 확인 | `inputs.calib_top_npz`, `inputs.calib_front_npz` | 카메라를 옮기지 않았으면 이전 NPZ 그대로 |
@@ -91,7 +92,7 @@ MyDrive/8월연구/                 ← experiment.data_root
 | 장비 변경 시 | `setup.motor_center_in_id0_cm` | 그리퍼(모터 중심) 위치가 바뀌었을 때 |
 | 장비 변경 시 | `setup.front_wall_y_cm`, `setup.marker_size_cm`, `setup.front_wall_marker_*` | 수조 · 마커 변경 시 |
 | 보정 NPZ | `calibration.*` | 01에서만 사용 (보정용 영상, 프레임 번호, 벽 마커 사용 여부) |
-| 수정 금지 | `advanced` | 알고리즘 상수(`gtrack/settings.py`의 [C] 구역). 바꾸면 결과가 달라진다 |
+| 수정 "시 주의 이런걸 붙이자" | `advanced` | 알고리즘 상수(`gtrack/settings.py`의 [C] 구역). 바꾸면 결과가 달라진다 |
 
 ## 결과 파일
 
@@ -138,7 +139,7 @@ tests/                          후처리 회귀 테스트 (합성 데이터)
 docs/                           블록별 변수 정리, 원본 다이어그램
 ```
 
-## 자주 나는 오류
+## 자주 나는 오류("이런건 다 뺴도 될것 같은데? 사용하는 사람이 알아서 봐야하지 않을까 코드 잘못된게 아니라 셋팅 잘 못 한거니깐")
 
 | 메시지 | 원인 · 조치 |
 |---|---|
@@ -162,7 +163,7 @@ from gtrack.postprocess.pipeline import run_postprocess; run_postprocess()"
 
 config.yaml의 경로를 로컬 경로로 바꿔 쓴다. 보정 클릭은 `python tools/local_gui/manual_calib_top.py config.yaml`.
 
-## 검증 · 원본 대비 변경
+## 검증 · 원본 대비 변경("이것도 다 빼자 불 필요한 내용같아")
 
 - 정리 전 원본(`online_preprocess_final_20260930.py`, `postprocess_final_20261001.py`, `manual_calib_*.py`)과
   계산 로직은 같다. 함수 본문을 그대로 옮기고 상수 참조만 `settings.이름`으로 바꿨다.
