@@ -19,7 +19,7 @@ DATA = os.path.join(HERE, 'data')
 def main():
     out_dir = tempfile.mkdtemp()
     settings.apply_config({
-        'experiment': {'name': 'edit_check', 'data_root': out_dir},
+        'experiment': {'data_root': out_dir},
         'inputs': {'calib_top_npz': os.path.join(DATA, 'calib_top.npz'),
                    'calib_front_npz': os.path.join(DATA, 'calib_front.npz')},
     })

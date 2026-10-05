@@ -128,7 +128,7 @@ def make_calibration_npz(role, overwrite=False):
     else:
         np.savez(save_path, R=R, t=t.reshape(3), use_wall_transform=use_wall, **meta)
 
-    check_path = os.path.join(settings.OUTPUT_DIR or os.path.dirname(save_path), f'calibration_check_{role}.png')
+    check_path = os.path.splitext(save_path)[0] + '_check.png'
     cv2.imwrite(check_path, draw_check_image(frame, corners, K, D, R_world, t_world))
 
     print(f'[{role}] marker ID {marker_id} detected -> saved {save_path}')

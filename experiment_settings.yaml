@@ -1,24 +1,23 @@
-# Experiment settings. Copy this file to the experiment folder on Google Drive and edit it there.
+# Experiment settings. Copy this file to the experiment-day folder on Google Drive and edit it there.
 # All notebooks read this one file. Relative paths are resolved from experiment.data_root.
 # Values not listed here use the defaults in main_code/settings.py.
 
 # ============================================================
-# [Required] Set once per setup; for each video set, change experiment.name and the two videos
+# [Required] Set once per experiment day; for each trial, change only the two videos
 # ============================================================
 experiment:
-  name: "exp_0812_trial5"                       # results folder: <data_root>/<output_root>/<name>/
-  data_root: "/content/drive/MyDrive/files"     # Drive folder of this experiment
+  data_root: "/content/drive/MyDrive/files"     # experiment-day folder
 
 inputs:
-  top_video: "top/top5.MP4"                     # frame-aligned with the front video
-  front_video: "front/front5.mp4"
+  top_video: "Top/top1.mp4"                     # trial number = last number in the file name
+  front_video: "Front/front1.mp4"               # must have the same trial number as top_video
   calib_top_npz: "manual_calib_top.npz"         # written by 01_calibration, read by 02 and 03
   calib_front_npz: "manual_calib_front.npz"
-  top_weights: "/content/drive/MyDrive/yolo_runs/0812top_sgd/weights/0813topbest.pt"
-  front_weights: "/content/drive/MyDrive/yolo_runs/0812fro_sgd/weights/0813frobest.pt"
+  top_weights: "top_best.pt"
+  front_weights: "front_best.pt"
 
 outputs:
-  output_root: "results"                        # relative to data_root, or an absolute path
+  output_root: "result"                         # results: raw_N, final_N, video_N, setup_N, config.yaml
 
 water:
   surface_z_cm: 67.0                            # water height above the floor (ID0 marker plane) [cm]
@@ -32,8 +31,8 @@ sync:
 # [Calibration] Used by 01_calibration only
 # ============================================================
 calibration:
-  top_video: ""                                 # empty: inputs.top_video
-  front_video: ""                               # empty: inputs.front_video
+  top_video: "top_calib.mp4"                    # empty: inputs.top_video
+  front_video: "front_calib.mp4"                # empty: inputs.front_video
   frame_index: 0                                # frame where the marker is clearly visible
   front_use_wall_transform: false               # true: front camera sees the wall marker, not the floor marker
   front_pick_rightmost: true                    # use the rightmost marker if two are visible

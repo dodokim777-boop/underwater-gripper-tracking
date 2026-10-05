@@ -1,4 +1,4 @@
-"""Output: build and write 3D_final.xlsx sheets."""
+"""Output: build and write final_N.xlsx sheets."""
 
 import numpy as np
 import pandas as pd

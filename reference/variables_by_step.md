@@ -12,7 +12,7 @@ Constant values are in `main_code/settings.py`.
 | Calibration NPZ (R, t) | `inputs.calib_top_npz`, `inputs.calib_front_npz` | `preprocessing/load_calibration.py`, `postprocessing/load_raw_excel.py` |
 | Camera intrinsics (K, D) | `cameras.top`, `cameras.front` | same as above |
 
-## Preprocessing → `3D_raw_online.xlsx`
+## Preprocessing → `raw_N.xlsx`
 
 ### ① Object detection — `step01_detect_object.py`
 
@@ -64,7 +64,7 @@ No output columns. Interfaces: water surface `Z = WATER_SURFACE_Z_CM`, front wal
 | `Time_sec` | `Time_s` |
 | `Sig_*`, `Tracker_Ref_Frame`, `*_Source_Frame`, `*_Sync_*`, `Sync_*`, `*_Frame_Reused` | not written |
 
-## Postprocessing → `3D_final.xlsx`
+## Postprocessing → `final_N.xlsx`
 
 The raw Excel names are converted back to internal names when read (`settings.RAW_COLUMN_RENAME`).
 

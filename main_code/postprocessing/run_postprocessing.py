@@ -1,4 +1,4 @@
-"""Run steps ⑥-⑭ (one function per step) and save 3D_final.xlsx."""
+"""Run steps ⑥-⑭ (one function per step) and save final_N.xlsx."""
 
 from .. import settings
 from . import load_raw_excel, save_final_excel

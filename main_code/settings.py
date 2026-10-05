@@ -2,6 +2,7 @@
 
 import copy
 import os
+import re
 
 import cv2
 import numpy as np
@@ -9,9 +10,10 @@ import numpy as np
 # ============================================================
 # [A] Run values (set by experiment_settings.yaml)
 # ============================================================
-EXPERIMENT_NAME = None
 DATA_ROOT = None
 OUTPUT_DIR = None
+RUN_NUMBER = None
+TEST_RUN = False
 
 TOP_VIDEO_PATH = None
 FRONT_VIDEO_PATH = None
@@ -256,11 +258,13 @@ RAW_EXCLUDED_COLUMNS = [
     'Sync_Status', 'Top_Frame_Reused', 'Front_Frame_Reused',
 ]
 
-RAW_EXCEL_NAME = '3D_raw_online.xlsx'
-FINAL_EXCEL_NAME = '3D_final.xlsx'
-ANNOTATED_VIDEO_NAME = 'analyzed_output.mp4'
-VERIFY_IMAGE_NAME = 'verify_unification.png'
-CONFIG_SNAPSHOT_NAME = 'config_used.yaml'
+OUTPUT_FILES = {
+    'RAW_EXCEL': ('raw', '.xlsx'),
+    'FINAL_EXCEL': ('final', '.xlsx'),
+    'ANNOTATED_VIDEO_PATH': ('video', '.mp4'),
+    'VERIFY_IMAGE_PATH': ('setup', '.png'),
+}
+CONFIG_SNAPSHOT_NAME = 'config.yaml'
 
 
 def _rebuild_derived():
@@ -274,11 +278,15 @@ def _rebuild_derived():
         'normal_to_air': np.array([0.0, 0.0, 1.0]),
     }
     g['RAW_COLUMN_RENAME_INVERSE'] = {v: k for k, v in RAW_COLUMN_RENAME.items()}
-    if OUTPUT_DIR:
-        g['RAW_EXCEL'] = os.path.join(OUTPUT_DIR, RAW_EXCEL_NAME)
-        g['FINAL_EXCEL'] = os.path.join(OUTPUT_DIR, FINAL_EXCEL_NAME)
-        g['ANNOTATED_VIDEO_PATH'] = os.path.join(OUTPUT_DIR, ANNOTATED_VIDEO_NAME)
-        g['VERIFY_IMAGE_PATH'] = os.path.join(OUTPUT_DIR, VERIFY_IMAGE_NAME)
+    for key, (stem, ext) in OUTPUT_FILES.items():
+        if not OUTPUT_DIR:
+            g[key] = None
+        elif TEST_RUN:
+            g[key] = os.path.join(OUTPUT_DIR, f'test_{stem}{ext}')
+        elif RUN_NUMBER is not None:
+            g[key] = os.path.join(OUTPUT_DIR, f'{stem}_{RUN_NUMBER}{ext}')
+        else:
+            g[key] = None
 
 
 _rebuild_derived()
@@ -290,7 +298,6 @@ _DEFAULTS = {
 
 
 _CONFIG_MAP = {
-    ('experiment', 'name'): 'EXPERIMENT_NAME',
     ('experiment', 'data_root'): 'DATA_ROOT',
     ('inputs', 'top_video'): 'TOP_VIDEO_PATH',
     ('inputs', 'front_video'): 'FRONT_VIDEO_PATH',
@@ -388,9 +395,23 @@ def apply_config(cfg):
     for name in _PATH_KEYS:
         g[name] = _resolve_path(g[name])
 
-    output_root = (cfg.get('outputs') or {}).get('output_root', 'results')
-    if EXPERIMENT_NAME:
-        g['OUTPUT_DIR'] = os.path.join(_resolve_path(output_root) or output_root, str(EXPERIMENT_NAME))
+    output_root = (cfg.get('outputs') or {}).get('output_root', 'result')
+    if DATA_ROOT or os.path.isabs(str(output_root)):
+        g['OUTPUT_DIR'] = _resolve_path(output_root)
+    g['RUN_NUMBER'] = trial_number(TOP_VIDEO_PATH)
+    _rebuild_derived()
+
+
+def trial_number(path):
+    if not path:
+        return None
+    stem = os.path.splitext(os.path.basename(str(path)))[0]
+    found = re.findall(r'\d+', stem)
+    return int(found[-1]) if found else None
+
+
+def set_test_run(test):
+    globals()['TEST_RUN'] = bool(test)
     _rebuild_derived()
 
 
@@ -406,13 +427,24 @@ def configure(config_path, make_output_dir=True):
     apply_config(cfg)
     if make_output_dir and OUTPUT_DIR:
         os.makedirs(OUTPUT_DIR, exist_ok=True)
-        save_snapshot(os.path.join(OUTPUT_DIR, CONFIG_SNAPSHOT_NAME), source=config_path)
+        save_snapshot(os.path.join(OUTPUT_DIR, CONFIG_SNAPSHOT_NAME))
     return cfg
+
+
+SNAPSHOT_EXCLUDED = (
+    'DATA_ROOT', 'OUTPUT_DIR', 'RUN_NUMBER', 'TEST_RUN',
+    'TOP_VIDEO_PATH', 'FRONT_VIDEO_PATH', 'TOP_MODEL_PATH', 'FRONT_MODEL_PATH',
+    'MANUAL_CALIB_TOP_PATH', 'MANUAL_CALIB_FRONT_PATH', 'CALIB_TOP_VIDEO_PATH', 'CALIB_FRONT_VIDEO_PATH',
+    'RAW_EXCEL', 'FINAL_EXCEL', 'ANNOTATED_VIDEO_PATH', 'VERIFY_IMAGE_PATH',
+    'OUTPUT_FILES', 'CONFIG_SNAPSHOT_NAME',
+)
 
 
 def snapshot():
     out = {}
     for k in _DEFAULTS:
+        if k in SNAPSHOT_EXCLUDED:
+            continue
         v = globals()[k]
         if isinstance(v, np.ndarray):
             v = v.tolist()
@@ -424,19 +456,18 @@ def snapshot():
     return out
 
 
-def save_snapshot(path, source=None):
+def save_snapshot(path):
     import yaml
-    data = {'source_config': source, 'values': snapshot()}
     with open(path, 'w', encoding='utf-8') as f:
-        yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
+        yaml.safe_dump(snapshot(), f, allow_unicode=True, sort_keys=False)
 
 
 REQUIRED_KEYS_BY_STAGE = {
-    'calibration': ['EXPERIMENT_NAME', 'DATA_ROOT'],
-    'preprocessing': ['EXPERIMENT_NAME', 'DATA_ROOT', 'TOP_VIDEO_PATH', 'FRONT_VIDEO_PATH',
+    'calibration': ['DATA_ROOT'],
+    'preprocessing': ['DATA_ROOT', 'TOP_VIDEO_PATH', 'FRONT_VIDEO_PATH',
                'TOP_MODEL_PATH', 'FRONT_MODEL_PATH',
                'MANUAL_CALIB_TOP_PATH', 'MANUAL_CALIB_FRONT_PATH'],
-    'postprocessing': ['EXPERIMENT_NAME', 'DATA_ROOT',
+    'postprocessing': ['DATA_ROOT', 'TOP_VIDEO_PATH', 'FRONT_VIDEO_PATH',
                     'MANUAL_CALIB_TOP_PATH', 'MANUAL_CALIB_FRONT_PATH'],
 }
 
@@ -469,6 +500,12 @@ def check(stage):
             if not path or not os.path.exists(path):
                 problems.append(f'Calibration {role} video not found: {path} '
                                 f'(calibration.{role}_video, or inputs.{role}_video if empty)')
+    if stage in ('preprocessing', 'postprocessing') and TOP_VIDEO_PATH and FRONT_VIDEO_PATH:
+        n_top, n_front = trial_number(TOP_VIDEO_PATH), trial_number(FRONT_VIDEO_PATH)
+        if n_top is None or n_front is None:
+            problems.append('Video file names must contain the trial number (e.g. Top/top1.mp4, Front/front1.mp4).')
+        elif n_top != n_front:
+            problems.append(f'Trial numbers differ: top {n_top}, front {n_front}.')
     if not (20.0 <= float(WATER_SURFACE_Z_CM) <= 150.0):
         problems.append(f'WATER_SURFACE_Z_CM={WATER_SURFACE_Z_CM}: check the water height above the floor [cm]')
     if K_MATRIX_TOP.shape != (3, 3) or K_MATRIX_FRONT.shape != (3, 3):
@@ -481,8 +518,8 @@ def check(stage):
 
 def print_summary(stage=None):
     rows = [
-        ('Experiment', EXPERIMENT_NAME),
         ('Results folder', OUTPUT_DIR),
+        ('Trial number', RUN_NUMBER),
         ('Top video', TOP_VIDEO_PATH),
         ('Front video', FRONT_VIDEO_PATH),
         ('Top YOLO weights', TOP_MODEL_PATH),

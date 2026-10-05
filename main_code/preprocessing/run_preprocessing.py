@@ -1,4 +1,4 @@
-"""Run steps ①-⑤ frame by frame and save 3D_raw_online.xlsx."""
+"""Run steps ①-⑤ frame by frame and save raw_N.xlsx (test_raw.xlsx for a test run)."""
 
 import cv2
 import numpy as np
@@ -13,6 +13,7 @@ from .step05_to_gripper_frame import to_motor_origin_frame
 
 
 def run_preprocessing(max_frames=None):
+    settings.set_test_run(max_frames is not None)
     dataset_is_wet = settings.DATASET_IS_WET
     enable_refraction = settings.ENABLE_REFRACTION
 

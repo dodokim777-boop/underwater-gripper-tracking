@@ -1,4 +1,4 @@
-"""Output: write 3D_raw_online.xlsx."""
+"""Output: write raw_N.xlsx."""
 
 import numpy as np
 import pandas as pd

@@ -1,4 +1,4 @@
-"""Input: read 3D_raw_online.xlsx and the calibration NPZ files."""
+"""Input: read raw_N.xlsx and the calibration NPZ files."""
 
 import cv2
 import numpy as np
