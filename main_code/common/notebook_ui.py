@@ -121,13 +121,19 @@ def _get(cfg, *keys, default=None):
     return node
 
 
-def _edit_full_file(path, out):
+def _pre(text):
+    return widgets.HTML(f'<pre style="margin:0">{html.escape(text)}</pre>')
+
+
+def _edit_full_file(path, day, template_path, view):
     with open(path, 'r', encoding='utf-8') as f:
         text = f.read()
     box = widgets.Textarea(value=text, continuous_update=False,
                            layout=widgets.Layout(width='100%', height='600px'))
     box.add_class('settings-editor')
     status = widgets.HTML('Changes are saved when you click outside the box.')
+    back = widgets.Button(description='Back to summary')
+    back.on_click(lambda _: _show_summary(path, day, template_path, view))
 
     def save(change):
         try:
@@ -140,12 +146,13 @@ def _edit_full_file(path, out):
         status.value = f'<b style="color:#2a2">Saved</b> {datetime.datetime.now():%H:%M:%S}'
 
     box.observe(save, names='value')
-    with out:
-        display(widgets.HTML('<style>.settings-editor textarea{font-family:monospace;font-size:13px}</style>'))
-        display(box, status)
+    view.children = [
+        widgets.HTML('<style>.settings-editor textarea{font-family:monospace;font-size:13px}</style>'),
+        box, status, back,
+    ]
 
 
-def _show_summary(path, day, template_path, out):
+def _show_summary(path, day, template_path, view, note=''):
     with open(path, 'r', encoding='utf-8') as f:
         cfg = yaml.safe_load(f) or {}
     rows = [('Settings file', path),
@@ -158,15 +165,14 @@ def _show_summary(path, day, template_path, out):
     width = max(len(r[0]) for r in rows)
     edit = widgets.Button(description='Edit settings')
     full = widgets.Button(description='Edit full file')
-    edit.on_click(lambda _: (out.clear_output(), _show_form(path, day, template_path, out)))
-    full.on_click(lambda _: (out.clear_output(), _edit_full_file(path, out)))
-    with out:
-        print('\n'.join(f'{k:<{width}} : {v}' for k, v in rows))
-        print('\nSettings are ready. Run cell 1, or edit them below.')
-        display(widgets.HBox([edit, full]))
+    edit.on_click(lambda _: _show_form(path, day, template_path, view))
+    full.on_click(lambda _: _edit_full_file(path, day, template_path, view))
+    text = '\n'.join(f'{k:<{width}} : {v}' for k, v in rows)
+    text += (f'\n\n{note}' if note else '') + '\n\nSettings are ready. Run cell 1, or edit them with the buttons.'
+    view.children = [_pre(text), widgets.HBox([edit, full])]
 
 
-def _show_form(path, day, template_path, out):
+def _show_form(path, day, template_path, view, intro=''):
     exists = os.path.exists(path)
     with open(path if exists else template_path, 'r', encoding='utf-8') as f:
         base = f.read()
@@ -221,27 +227,32 @@ def _show_form(path, day, template_path, out):
             f.write(text)
         missing = [box.value for key, (_, box) in files.items()
                    if box.value and not os.path.exists(os.path.join(day, box.value)) and not key.endswith('_npz')]
-        out.clear_output()
-        _show_summary(path, day, template_path, out)
-        with out:
-            print(f'\nSaved {datetime.datetime.now():%H:%M:%S}.')
-            if missing:
-                print('Not found in the day folder: ' + ', '.join(missing))
+        note = f'Saved {datetime.datetime.now():%H:%M:%S}.'
+        if missing:
+            note += ' Not found in the day folder: ' + ', '.join(missing)
+        _show_summary(path, day, template_path, view, note)
 
     save.on_click(on_save)
-    with out:
-        print('Settings file: ' + path + ('' if exists else ' (new)'))
-        display(widgets.VBox([water, motor_row, classes] + [b for _, b in files.values()] + [video, save, status]))
+    header = (intro + '\n' if intro else '') + 'Settings file: ' + path + ('' if exists else ' (new)')
+    view.children = [_pre(header), water, motor_row, classes] + [b for _, b in files.values()] + [video, save, status]
+
+
+def _enable_colab_widgets():
+    try:
+        from google.colab import output
+        output.enable_custom_widget_manager()
+    except Exception:
+        pass
 
 
 def day_settings(day, template_path):
+    _enable_colab_widgets()
     path = settings.day_settings_path(day)
-    out = widgets.Output()
-    display(out)
+    view = widgets.VBox()
+    display(view)
     if os.path.exists(path):
-        _show_summary(path, day, template_path, out)
+        _show_summary(path, day, template_path, view)
     else:
-        with out:
-            print('No settings file for this day yet. Fill in the form and click Save.')
-        _show_form(path, day, template_path, out)
+        _show_form(path, day, template_path, view,
+                   intro='No settings file for this day yet. Fill in the form and click Save.')
     return path
