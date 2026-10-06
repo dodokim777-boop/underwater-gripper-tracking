@@ -1,26 +1,22 @@
-# Experiment settings. Copy this file to the experiment-day folder on Google Drive and edit it there.
-# All notebooks read this one file. Relative paths are resolved from experiment.data_root.
+# Day settings: one file per experiment day, at <day folder>/setup/experiment_settings.yaml.
+# Cell 0 of the notebooks creates and edits this file; it can also be edited by hand.
+# Relative paths are resolved from the day folder. Videos are found in Top/ and Front/ by trial number.
 # Values not listed here use the defaults in main_code/settings.py.
 
 # ============================================================
-# [Required] Set once per experiment day; for each trial, change only the two videos
+# [Day] Set once per experiment day (cell 0 form)
 # ============================================================
-experiment:
-  data_root: "/content/drive/MyDrive/files"     # experiment-day folder
+water:
+  surface_z_cm: 67.0                            # water height above the floor (ID0 marker plane) [cm]
 
 inputs:
-  top_video: "Top/top1.mp4"                     # trial number = last number in the file name
-  front_video: "Front/front1.mp4"               # must have the same trial number as top_video
-  calib_top_npz: "manual_calib_top.npz"         # written by 01_calibration, read by 02 and 03
-  calib_front_npz: "manual_calib_front.npz"
-  top_weights: "top_best.pt"
-  front_weights: "front_best.pt"
+  calib_top_npz: "setup/manual_calib_top.npz"   # written by 01_calibration, read by 02 and 03
+  calib_front_npz: "setup/manual_calib_front.npz"
+  top_weights: "setup/top_best.pt"
+  front_weights: "setup/front_best.pt"
 
 outputs:
   output_root: "result"                         # results: raw_N, final_N, video_N, setup_N, config.yaml
-
-water:
-  surface_z_cm: 67.0                            # water height above the floor (ID0 marker plane) [cm]
 
 sync:
   top_time_offset_sec: 0.0                      # 0 for frame-aligned videos
@@ -31,8 +27,8 @@ sync:
 # [Calibration] Used by 01_calibration only
 # ============================================================
 calibration:
-  top_video: "top_calib.mp4"                    # empty: inputs.top_video
-  front_video: "front_calib.mp4"                # empty: inputs.front_video
+  top_video: "setup/top_calib.mp4"              # marker video of the top camera
+  front_video: "setup/front_calib.mp4"          # marker video of the front camera
   frame_index: 0                                # frame where the marker is clearly visible
   front_use_wall_transform: false               # true: front camera sees the wall marker, not the floor marker
   front_pick_rightmost: true                    # use the rightmost marker if two are visible

@@ -14,6 +14,10 @@ DATA_ROOT = None
 OUTPUT_DIR = None
 RUN_NUMBER = None
 TEST_RUN = False
+TOP_VIDEO_DIR = 'Top'
+FRONT_VIDEO_DIR = 'Front'
+SETUP_DIR = 'setup'
+DAY_SETTINGS_NAME = 'experiment_settings.yaml'
 
 TOP_VIDEO_PATH = None
 FRONT_VIDEO_PATH = None
@@ -379,7 +383,7 @@ def reset_defaults():
     _rebuild_derived()
 
 
-def apply_config(cfg):
+def apply_config(cfg, trial=None):
     reset_defaults()
     g = globals()
     for keys, name in _CONFIG_MAP.items():
@@ -398,8 +402,38 @@ def apply_config(cfg):
     output_root = (cfg.get('outputs') or {}).get('output_root', 'result')
     if DATA_ROOT or os.path.isabs(str(output_root)):
         g['OUTPUT_DIR'] = _resolve_path(output_root)
-    g['RUN_NUMBER'] = trial_number(TOP_VIDEO_PATH)
+    g['_VIDEO_CANDIDATES'] = {}
+    if trial is not None:
+        for role, folder in (('top', TOP_VIDEO_DIR), ('front', FRONT_VIDEO_DIR)):
+            found = find_trial_videos(_resolve_path(folder), trial)
+            g['_VIDEO_CANDIDATES'][role] = found
+            g[f'{role.upper()}_VIDEO_PATH'] = found[0] if len(found) == 1 else None
+        g['RUN_NUMBER'] = int(trial)
+    else:
+        g['RUN_NUMBER'] = trial_number(TOP_VIDEO_PATH)
     _rebuild_derived()
+
+
+_VIDEO_CANDIDATES = {}
+
+
+def find_trial_videos(folder, trial):
+    if not folder or not os.path.isdir(folder):
+        return []
+    return [os.path.join(folder, n) for n in sorted(os.listdir(folder))
+            if not n.startswith('.') and trial_number(n) == int(trial)]
+
+
+def available_trials(data_root):
+    folder = os.path.join(data_root, TOP_VIDEO_DIR)
+    if not os.path.isdir(folder):
+        return []
+    return sorted({trial_number(n) for n in os.listdir(folder)
+                   if not n.startswith('.') and trial_number(n) is not None})
+
+
+def day_settings_path(data_root):
+    return os.path.join(data_root, SETUP_DIR, DAY_SETTINGS_NAME)
 
 
 def trial_number(path):
@@ -422,9 +456,11 @@ def load_config_file(path):
     return cfg
 
 
-def configure(config_path, make_output_dir=True):
+def configure(config_path, make_output_dir=True, data_root=None, trial=None):
     cfg = load_config_file(config_path)
-    apply_config(cfg)
+    if data_root:
+        cfg.setdefault('experiment', {})['data_root'] = data_root
+    apply_config(cfg, trial=trial)
     if make_output_dir and OUTPUT_DIR:
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         save_snapshot(os.path.join(OUTPUT_DIR, CONFIG_SNAPSHOT_NAME))
@@ -433,6 +469,7 @@ def configure(config_path, make_output_dir=True):
 
 SNAPSHOT_EXCLUDED = (
     'DATA_ROOT', 'OUTPUT_DIR', 'RUN_NUMBER', 'TEST_RUN',
+    'TOP_VIDEO_DIR', 'FRONT_VIDEO_DIR', 'SETUP_DIR', 'DAY_SETTINGS_NAME',
     'TOP_VIDEO_PATH', 'FRONT_VIDEO_PATH', 'TOP_MODEL_PATH', 'FRONT_MODEL_PATH',
     'MANUAL_CALIB_TOP_PATH', 'MANUAL_CALIB_FRONT_PATH', 'CALIB_TOP_VIDEO_PATH', 'CALIB_FRONT_VIDEO_PATH',
     'RAW_EXCEL', 'FINAL_EXCEL', 'ANNOTATED_VIDEO_PATH', 'VERIFY_IMAGE_PATH',
@@ -483,6 +520,8 @@ def check(stage):
     problems = []
     g = globals()
     for name in REQUIRED_KEYS_BY_STAGE[stage]:
+        if name in ('TOP_VIDEO_PATH', 'FRONT_VIDEO_PATH') and _VIDEO_CANDIDATES:
+            continue
         if g.get(name) in (None, ''):
             problems.append(f'{name} is empty (check experiment_settings.yaml).')
     for name in FILES_BY_STAGE[stage]:
@@ -500,6 +539,13 @@ def check(stage):
             if not path or not os.path.exists(path):
                 problems.append(f'Calibration {role} video not found: {path} '
                                 f'(calibration.{role}_video, or inputs.{role}_video if empty)')
+    for role, found in _VIDEO_CANDIDATES.items():
+        folder = TOP_VIDEO_DIR if role == 'top' else FRONT_VIDEO_DIR
+        if not found:
+            problems.append(f'No {role} video with trial number {RUN_NUMBER} in {folder}/')
+        elif len(found) > 1:
+            names = ', '.join(os.path.basename(f) for f in found)
+            problems.append(f'Several {role} videos with trial number {RUN_NUMBER} in {folder}/: {names}')
     if stage in ('preprocessing', 'postprocessing') and TOP_VIDEO_PATH and FRONT_VIDEO_PATH:
         n_top, n_front = trial_number(TOP_VIDEO_PATH), trial_number(FRONT_VIDEO_PATH)
         if n_top is None or n_front is None:

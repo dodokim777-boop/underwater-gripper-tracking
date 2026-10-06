@@ -8,3 +8,4 @@ opencv-python>=4.7        # includes cv2.aruco
 openpyxl>=3.1             # Excel output
 PyYAML>=6.0               # settings file
 matplotlib>=3.7           # notebook plots
+ipywidgets>=7             # settings editor in the notebooks
