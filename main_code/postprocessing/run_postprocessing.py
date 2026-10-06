@@ -29,9 +29,9 @@ def step_load(raw_path=None, calib_top='auto', calib_front='auto'):
 
     missing_required = [
         c for c in [
-            'Frame', *settings.MEAS_COLS,
-            'Status_Top', 'Status_Front',
-            'Top_px_u', 'Top_px_v', 'Front_px_u', 'Front_px_v',
+            'Frame', *settings.RAW_MEAS_COLS,
+            'Top_Status', 'Front_Status',
+            'Top_U_px', 'Top_V_px', 'Front_U_px', 'Front_V_px',
         ]
         if c not in df.columns
     ]
@@ -39,7 +39,7 @@ def step_load(raw_path=None, calib_top='auto', calib_front='auto'):
         raise KeyError(f'Missing required columns: {missing_required}')
 
     for raw_col, meas_col in zip(settings.RAW_MEAS_COLS, settings.MEAS_COLS):
-        df[raw_col] = df[meas_col]
+        df[meas_col] = df[raw_col]
 
     if calib_top == 'auto':
         calib_top = load_raw_excel.load_calib_top()

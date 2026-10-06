@@ -12,8 +12,8 @@ def _long_both_lost_barrier(df, min_len=None):
     if min_len is None:
         min_len = settings.GRAB_MIN
     both_lost = (
-        df['Status_Top'].eq('LOST').to_numpy()
-        & df['Status_Front'].eq('LOST').to_numpy()
+        df['Top_Status'].eq('LOST').to_numpy()
+        & df['Front_Status'].eq('LOST').to_numpy()
     )
     barrier = np.zeros(len(df), dtype=bool)
     idx = 0
@@ -128,8 +128,8 @@ def _top_anchor_offset(df, anchor_set, calib_top):
     offset = settings.MOTOR_CENTER_IN_ID0_CM
     residuals = []
     for idx in np.asarray(anchor_set, dtype=int):
-        u = pd.to_numeric(pd.Series([df.at[idx, 'Top_px_u']]), errors='coerce').iloc[0]
-        v = pd.to_numeric(pd.Series([df.at[idx, 'Top_px_v']]), errors='coerce').iloc[0]
+        u = pd.to_numeric(pd.Series([df.at[idx, 'Top_U_px']]), errors='coerce').iloc[0]
+        v = pd.to_numeric(pd.Series([df.at[idx, 'Top_V_px']]), errors='coerce').iloc[0]
         z_motor = float(df.at[idx, 'Anchor_Raw_Z'])
         if not np.isfinite(u) or not np.isfinite(v) or not np.isfinite(z_motor):
             continue
@@ -149,8 +149,8 @@ def _front_anchor_offset(df, anchor_set, calib_front):
     offset = settings.MOTOR_CENTER_IN_ID0_CM
     residuals = []
     for idx in np.asarray(anchor_set, dtype=int):
-        u = pd.to_numeric(pd.Series([df.at[idx, 'Front_px_u']]), errors='coerce').iloc[0]
-        v = pd.to_numeric(pd.Series([df.at[idx, 'Front_px_v']]), errors='coerce').iloc[0]
+        u = pd.to_numeric(pd.Series([df.at[idx, 'Front_U_px']]), errors='coerce').iloc[0]
+        v = pd.to_numeric(pd.Series([df.at[idx, 'Front_V_px']]), errors='coerce').iloc[0]
         y_motor = float(df.at[idx, 'Anchor_Raw_Y'])
         if not np.isfinite(u) or not np.isfinite(v) or not np.isfinite(y_motor):
             continue
@@ -191,8 +191,8 @@ def _accumulate_xy_top(df, start, end, left_set, right_set, z_segment, calib_top
     offset = settings.MOTOR_CENTER_IN_ID0_CM
 
     def top_only(idx, z_motor):
-        u = pd.to_numeric(pd.Series([df.at[idx, 'Top_px_u']]), errors='coerce').iloc[0]
-        v = pd.to_numeric(pd.Series([df.at[idx, 'Top_px_v']]), errors='coerce').iloc[0]
+        u = pd.to_numeric(pd.Series([df.at[idx, 'Top_U_px']]), errors='coerce').iloc[0]
+        v = pd.to_numeric(pd.Series([df.at[idx, 'Top_V_px']]), errors='coerce').iloc[0]
         if not np.isfinite(u) or not np.isfinite(v) or not np.isfinite(z_motor):
             return None
         point_world = top_ray_plane_z(
@@ -225,8 +225,8 @@ def _accumulate_xz_front(df, start, end, left_set, right_set, y_segment, calib_f
     offset = settings.MOTOR_CENTER_IN_ID0_CM
 
     def front_only(idx, y_motor):
-        u = pd.to_numeric(pd.Series([df.at[idx, 'Front_px_u']]), errors='coerce').iloc[0]
-        v = pd.to_numeric(pd.Series([df.at[idx, 'Front_px_v']]), errors='coerce').iloc[0]
+        u = pd.to_numeric(pd.Series([df.at[idx, 'Front_U_px']]), errors='coerce').iloc[0]
+        v = pd.to_numeric(pd.Series([df.at[idx, 'Front_V_px']]), errors='coerce').iloc[0]
         if not np.isfinite(u) or not np.isfinite(v) or not np.isfinite(y_motor):
             return None
         point_world = front_ray_plane_y(
@@ -312,7 +312,7 @@ def interpolate_missing(df, calib_top, calib_front, sigma_a):
     right_slope_clipped = np.zeros(n, dtype=bool)
 
     top_supported = df['Top_Zone_Supported'].fillna(False).to_numpy(dtype=bool)
-    top_detected = df['Status_Top'].eq('DETECTED').to_numpy()
+    top_detected = df['Top_Status'].eq('DETECTED').to_numpy()
     reason = df['Missing_Reason'].astype(str).to_numpy()
 
     stats = {
@@ -754,7 +754,7 @@ def interpolate_missing(df, calib_top, calib_front, sigma_a):
     df['Hidden_Axis_Smoothed_Value'] = hidden_smoothed_value
     df['Hidden_Axis_Filtered_Velocity'] = hidden_filtered_velocity
     df['Hidden_Axis_Smoothed_Velocity'] = hidden_smoothed_velocity
-    df['Hidden_Axis_Posterior_Std'] = hidden_posterior_std
+    df['Hidden_Axis_Std_cm'] = hidden_posterior_std
     df['Hidden_Axis_Initial_Velocity'] = hidden_initial_velocity
     df['Hidden_Axis_Initial_Velocity_Std'] = hidden_initial_velocity_std
     df['Hidden_Axis_Innovation_Weight'] = hidden_innovation_weight
@@ -793,13 +793,13 @@ def validate_reconstruction_invariants(df):
 
     bad_top_mode = top_mode & ~(
         df['Missing_Reason'].eq('FRONT_MISSING')
-        & df['Status_Top'].eq('DETECTED')
-        & df['Status_Front'].eq('LOST')
+        & df['Top_Status'].eq('DETECTED')
+        & df['Front_Status'].eq('LOST')
     )
     bad_front_mode = front_mode & ~(
         df['Missing_Reason'].eq('TOP_MISSING')
-        & df['Status_Top'].eq('LOST')
-        & df['Status_Front'].eq('DETECTED')
+        & df['Top_Status'].eq('LOST')
+        & df['Front_Status'].eq('DETECTED')
     )
     if bad_top_mode.any() or bad_front_mode.any():
         raise RuntimeError(
@@ -837,7 +837,7 @@ def validate_reconstruction_invariants(df):
                 raise RuntimeError(f'{col} references a non-raw anchor.')
 
     posterior_std = pd.to_numeric(
-        df['Hidden_Axis_Posterior_Std'], errors='coerce'
+        df['Hidden_Axis_Std_cm'], errors='coerce'
     )
     if (applied & (~np.isfinite(posterior_std) | (posterior_std < 0))).any():
         raise RuntimeError('Applied hidden-axis estimate lacks valid posterior std.')
@@ -849,7 +849,7 @@ def validate_reconstruction_invariants(df):
     if (floor & ~top_mode).any():
         raise RuntimeError('Z floor appeared outside TOP_RAY mode.')
     if (
-        pd.to_numeric(df.loc[floor, 'Meas_Z'], errors='coerce')
+        pd.to_numeric(df.loc[floor, 'Z_cm'], errors='coerce')
         < settings.ZONE_TRACK_CENTER_Z_FLOOR - 1e-9
     ).any():
         raise RuntimeError('A Z-floor frame is below 3 cm.')

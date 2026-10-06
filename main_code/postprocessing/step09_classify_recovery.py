@@ -17,12 +17,12 @@ def _finite_pair(df, u_col, v_col):
 def classify_states(df):
     n = len(df)
     raw_valid = df[settings.MEAS_COLS].notna().all(axis=1).to_numpy()
-    top_ok = df['Status_Top'].eq('DETECTED').to_numpy()
-    front_ok = df['Status_Front'].eq('DETECTED').to_numpy()
-    top_lost = df['Status_Top'].eq('LOST').to_numpy()
-    front_lost = df['Status_Front'].eq('LOST').to_numpy()
-    top_pixel_ok = _finite_pair(df, 'Top_px_u', 'Top_px_v')
-    front_pixel_ok = _finite_pair(df, 'Front_px_u', 'Front_px_v')
+    top_ok = df['Top_Status'].eq('DETECTED').to_numpy()
+    front_ok = df['Front_Status'].eq('DETECTED').to_numpy()
+    top_lost = df['Top_Status'].eq('LOST').to_numpy()
+    front_lost = df['Front_Status'].eq('LOST').to_numpy()
+    top_pixel_ok = _finite_pair(df, 'Top_U_px', 'Top_V_px')
+    front_pixel_ok = _finite_pair(df, 'Front_U_px', 'Front_V_px')
     reason = df['Missing_Reason'].fillna('NONE').astype(str).to_numpy()
 
     recovery_mode = np.full(n, settings.RECOVERY_NONE, dtype=object)
@@ -98,9 +98,9 @@ def classify_top_zone_support(df, calib_top):
 
     n = len(df)
     supported = np.zeros(n, dtype=bool)
-    top_detected = df['Status_Top'].eq('DETECTED').to_numpy()
-    top_u = pd.to_numeric(df['Top_px_u'], errors='coerce').to_numpy(dtype=float)
-    top_v = pd.to_numeric(df['Top_px_v'], errors='coerce').to_numpy(dtype=float)
+    top_detected = df['Top_Status'].eq('DETECTED').to_numpy()
+    top_u = pd.to_numeric(df['Top_U_px'], errors='coerce').to_numpy(dtype=float)
+    top_v = pd.to_numeric(df['Top_V_px'], errors='coerce').to_numpy(dtype=float)
     candidates = top_detected & np.isfinite(top_u) & np.isfinite(top_v)
 
     for idx in np.flatnonzero(candidates):

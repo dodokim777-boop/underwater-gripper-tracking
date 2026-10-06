@@ -105,7 +105,7 @@ def read_raw_trajectory(raw_path):
     except ValueError:
         df = pd.read_excel(raw_path)
     df = df[[c for c in df.columns if not str(c).startswith('｜')]].reset_index(drop=True)
-    df = df.rename(columns=settings.RAW_COLUMN_RENAME_INVERSE)
+    df = df.rename(columns=settings.LEGACY_RAW_COLUMNS)
     return df, set(df.columns)
 
 
@@ -115,9 +115,9 @@ def ensure_missing_reason(df):
         return df
 
     reason = np.array(['NONE'] * len(df), dtype=object)
-    has_meas = df[settings.MEAS_COLS].notna().all(axis=1).to_numpy()
-    top_ok = df.get('Status_Top', pd.Series(['LOST'] * len(df))).eq('DETECTED').to_numpy()
-    front_ok = df.get('Status_Front', pd.Series(['LOST'] * len(df))).eq('DETECTED').to_numpy()
+    has_meas = df[settings.RAW_MEAS_COLS].notna().all(axis=1).to_numpy()
+    top_ok = df.get('Top_Status', pd.Series(['LOST'] * len(df))).eq('DETECTED').to_numpy()
+    front_ok = df.get('Front_Status', pd.Series(['LOST'] * len(df))).eq('DETECTED').to_numpy()
     reason[(~has_meas) & (~top_ok) & (~front_ok)] = 'BOTH_MISSING'
     reason[(~has_meas) & (~top_ok) & front_ok] = 'TOP_MISSING'
     reason[(~has_meas) & top_ok & (~front_ok)] = 'FRONT_MISSING'

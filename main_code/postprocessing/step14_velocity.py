@@ -7,8 +7,8 @@ from .. import settings
 
 
 def _time_seconds(df):
-    if 'Time_sec' in df.columns and df['Time_sec'].notna().all():
-        return df['Time_sec'].to_numpy(dtype=float), 'Time_sec'
+    if 'Time_s' in df.columns and df['Time_s'].notna().all():
+        return df['Time_s'].to_numpy(dtype=float), 'Time_s'
     frame = pd.to_numeric(df['Frame'], errors='coerce').to_numpy(dtype=float)
     return (frame - frame[0]) / settings.VEL_FALLBACK_FPS, f'Frame/{settings.VEL_FALLBACK_FPS}'
 
@@ -127,11 +127,11 @@ def compute_velocity_columns(df, half_window=None):
     df['V_obs_Noise_Ratio'] = r_obs
     df['V_N_Used'] = n_all
     df['V_obs_N_Used'] = n_obs
-    df['Result_Coord_Type'] = coord_type
-    df['Result_State'] = pd.Series(state).map(settings.RESULT_STATE_MAP).fillna(pd.Series(state)).to_numpy()
+    df['Coord_Type'] = coord_type
+    df['State'] = pd.Series(state).map(settings.RESULT_STATE_MAP).fillna(pd.Series(state)).to_numpy()
     df.attrs['velocity_time_source'] = time_source
 
-    result_state = df['Result_State'].to_numpy()
+    result_state = df['State'].to_numpy()
     recovered_types = ['TOP_LINEAR', 'TOP_KALMAN', 'TOP_EXTRAP',
                        'FRONT_LINEAR', 'FRONT_KALMAN', 'FRONT_EXTRAP']
     detected_mismatch = np.sum((result_state == 'DETECTED') != (coord_type == 'STEREO'))
@@ -151,7 +151,7 @@ def velocity_summary_rows(df):
         ('Velocity frames (observed-only)', int(df['Vx_obs_cm_s'].notna().sum())),
         ('State/Coord_Type mismatch frames', int(df.attrs.get('state_type_mismatch', 0))),
     ]
-    for label, count in df['Result_Coord_Type'].value_counts().items():
+    for label, count in df['Coord_Type'].value_counts().items():
         rows.append((f'Coord_Type::{label}', int(count)))
     src = df.loc[df['Speed_3D_cm_s'].notna(), 'Speed_3D_Source']
     for label, count in src.value_counts().items():

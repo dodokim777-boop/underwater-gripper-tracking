@@ -5,39 +5,14 @@ The object is detected with YOLO in the top and front camera videos and triangul
 | Notebook | Purpose | GPU | When to run | Colab |
 |---|---|---|---|---|
 | `01_calibration` | Camera calibration NPZ from the ArUco marker (R, t) | No | Once after moving a camera | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dodokim777-boop/underwater-gripper-tracking/blob/main/workflow/01_calibration.ipynb) |
-| `02_preprocessing` | Steps ①–⑭ for one trial → `raw_N.xlsx`, `video_N.mp4`, `setup_N.png`, `final_N.xlsx` | Yes | Every trial | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dodokim777-boop/underwater-gripper-tracking/blob/main/workflow/02_preprocessing.ipynb) |
-| `03_postprocessing` | Steps ⑥–⑭ one cell at a time (rerun or inspect postprocessing) → `final_N.xlsx` | No | When needed | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dodokim777-boop/underwater-gripper-tracking/blob/main/workflow/03_postprocessing.ipynb) |
+| `02_run_trial` | Steps ①–⑭ for one trial → `raw_N.xlsx`, `video_N.mp4`, `setup_N.png`, `final_N.xlsx` | Yes | Every trial | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dodokim777-boop/underwater-gripper-tracking/blob/main/workflow/02_run_trial.ipynb) |
+| `03_detailed_analysis` | Steps ⑥–⑭ one cell at a time (rerun or inspect postprocessing) → `final_N.xlsx` | No | When needed | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dodokim777-boop/underwater-gripper-tracking/blob/main/workflow/03_detailed_analysis.ipynb) |
 
 ## Pipeline
 
-```mermaid
-%%{init: {'theme': 'neutral', 'flowchart': {'curve': 'step'}}}%%
-flowchart LR
-  IN["Inputs<br/>top · front videos<br/>YOLO weights<br/>calibration NPZ"]
-  subgraph PRE["Preprocessing"]
-    direction TB
-    S1["① Object detection (YOLO)"] --> S2["② Ray generation · refraction"]
-    S2 --> S3["③ Ray triangulation"]
-    S3 --> S4["④ Gating · track confirmation"]
-    S4 --> S5["⑤ Gripper-frame transform"]
-  end
-  RAW["raw_N.xlsx"]
-  subgraph POST["Postprocessing"]
-    direction TB
-    S6["⑥ Outlier removal (Hampel)"] --> S7["⑦ Anchor snapshot"]
-    S7 --> S8["⑧ Process noise σa"]
-    S8 --> S9["⑨ Recovery mode"]
-    S9 --> S10["⑩ Single-view recovery"]
-    S10 --> S11["⑪ Work zone · GRAB"]
-    S11 --> S14["⑭ Velocity"]
-    S11 -.-> S1213["⑫ ⑬ Display only"]
-  end
-  FIN["final_N.xlsx"]
-  IN --> PRE
-  PRE --> RAW
-  RAW --> POST
-  POST --> FIN
-```
+![Pipeline](reference/pipeline_diagram.png)
+
+Step ⑩ (single-view recovery) in detail: [`reference/pipeline_step10.png`](reference/pipeline_step10.png). Editable source: [`reference/pipeline_diagram.drawio`](reference/pipeline_diagram.drawio) (open in diagrams.net; export PNG after editing).
 
 Steps ⑫ and ⑬ are for plotting only and do not affect the final position or velocity. Columns of each step are listed in [`reference/variables_by_step.md`](reference/variables_by_step.md).
 
@@ -59,13 +34,14 @@ MyDrive/<experiment day>/
 
 ## Running
 
-1. Open a notebook from its Colab badge. `02_preprocessing` uses a GPU runtime (T4).
+1. Open a notebook from its Colab badge. `02_run_trial` uses a GPU runtime (T4).
 2. **Cell 0** installs the dependencies, mounts Drive, and asks for the day folder path (Enter reuses the last one).
    - First run for that day: a form opens. Enter the water height, check the other values and the files found in `setup/`, and click **Save**. `setup/experiment_settings.yaml` is created.
    - Later runs: the current settings are shown. **Edit settings** opens the form again; **Edit full file** opens the whole file (cameras, tank, algorithm constants).
 3. **Cell 1** asks for the trial number, finds the videos with that number in `Top/` and `Front/`, and checks files and values.
 4. **Cell 2** (02) runs a short test. Check `result/test_setup.png`.
 5. **Cell 3** (02) runs the whole trial: preprocessing and postprocessing.
+6. **Cell 4** (02) plots the result: stereo points (black), top-only recovered (blue), front-only recovered (green), smoothed display line (orange), work zone (yellow), GRAB (red).
 
 For the next trial, run cell 1 again. Run `01_calibration` only after moving a camera.
 
@@ -101,14 +77,14 @@ The origin is the motor (gripper) center, and the axes follow the floor ID0 mark
 ```
 experiment_settings.yaml     day settings template (cell 0 creates setup/experiment_settings.yaml from it)
 requirements.txt
-workflow/                    notebooks: 01 calibration · 02 preprocessing · 03 postprocessing
+workflow/                    notebooks: 01 calibration · 02 run trial · 03 detailed analysis
 preparation/                 calibration NPZ (run before the pipeline)
 main_code/
   settings.py                default constants, settings-file loading and checks
-  common/                    refraction, file utilities, notebook prompts and settings form
+  common/                    refraction, file utilities, notebook prompts, settings form, result plot
   preprocessing/             steps ①–⑤ (step01_ … step05_), run_preprocessing.py
   postprocessing/            steps ⑥–⑭ (step06_ … step14_), run_postprocessing.py
-reference/                   variables by step, original diagram
+reference/                   variables by step, pipeline diagram (drawio + PNG)
 edit_check/                  check that results are unchanged after a code edit
 ```
 

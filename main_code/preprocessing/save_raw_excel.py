@@ -21,7 +21,7 @@ def write_raw_excel(df, summary_df, config_df, path):
             cols = [c for c in cols if c in df.columns]
             if sheet == 'Trajectory':
                 cols = cols + extra
-            df[cols].rename(columns=settings.RAW_COLUMN_RENAME).to_excel(writer, sheet_name=sheet, index=False)
+            df[cols].to_excel(writer, sheet_name=sheet, index=False)
         summary_df.to_excel(writer, sheet_name='Summary', index=False)
         config_df.to_excel(writer, sheet_name='Configuration', index=False)
         format_workbook_sheets(writer.book)
@@ -29,10 +29,10 @@ def write_raw_excel(df, summary_df, config_df, path):
 
 def build_summary_df(df, sync_output_fps):
     frames_n = len(df)
-    top_detected_n = int(df['Status_Top'].eq('DETECTED').sum()) if frames_n else 0
-    front_detected_n = int(df['Status_Front'].eq('DETECTED').sum()) if frames_n else 0
+    top_detected_n = int(df['Top_Status'].eq('DETECTED').sum()) if frames_n else 0
+    front_detected_n = int(df['Front_Status'].eq('DETECTED').sum()) if frames_n else 0
     paired_n = int(
-        (df['Status_Top'].eq('DETECTED') & df['Status_Front'].eq('DETECTED')).sum()
+        (df['Top_Status'].eq('DETECTED') & df['Front_Status'].eq('DETECTED')).sum()
     ) if frames_n else 0
     on_valid_n = int(df['Geometry_Status_ON'].eq('VALID').sum()) if frames_n else 0
     off_valid_n = int(df['Geometry_Status_OFF'].eq('VALID').sum()) if frames_n else 0

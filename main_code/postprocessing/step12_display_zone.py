@@ -47,7 +47,7 @@ def build_display_zone_state(
         stable_min_points = settings.DISPLAY_ZONE_STABLE_MIN_POINTS_PER_SIDE
     required = [
         'Frame', 'In_Zone', 'Pre_RTS_Coord_Available', 'Coord_State',
-        'Status_Top', 'Status_Front',
+        'Top_Status', 'Front_Status',
     ]
     missing = [c for c in required if c not in df.columns]
     if missing:
@@ -73,8 +73,8 @@ def build_display_zone_state(
         df['Pre_RTS_Coord_Available'].fillna(False).to_numpy(dtype=bool).copy()
     )
     coord_state = df['Coord_State'].fillna('LOST').astype(str).to_numpy().copy()
-    top_detected = df['Status_Top'].eq('DETECTED').to_numpy(dtype=bool)
-    front_detected = df['Status_Front'].eq('DETECTED').to_numpy(dtype=bool)
+    top_detected = df['Top_Status'].eq('DETECTED').to_numpy(dtype=bool)
+    front_detected = df['Front_Status'].eq('DETECTED').to_numpy(dtype=bool)
     any_camera_detected = top_detected | front_detected
 
     candidate = (~coord_available) & (~base_in_zone) & (coord_state == 'LOST')
@@ -179,8 +179,8 @@ def validate_display_zone_invariants(
     )
     state = df['Coord_State'].fillna('LOST').astype(str).to_numpy()
     frames = pd.to_numeric(df['Frame'], errors='coerce').to_numpy(dtype=float)
-    top_detected = df['Status_Top'].eq('DETECTED').to_numpy(dtype=bool)
-    front_detected = df['Status_Front'].eq('DETECTED').to_numpy(dtype=bool)
+    top_detected = df['Top_Status'].eq('DETECTED').to_numpy(dtype=bool)
+    front_detected = df['Front_Status'].eq('DETECTED').to_numpy(dtype=bool)
     any_camera_detected = top_detected | front_detected
 
     if not np.array_equal(display, base | bridge):

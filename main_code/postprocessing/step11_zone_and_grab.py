@@ -43,8 +43,8 @@ def classify_zone_grab(df):
     final[sub_valid & in_zone] = 'SUB_ZONE'
 
     both_lost = (
-        df['Status_Top'].eq('LOST').to_numpy()
-        & df['Status_Front'].eq('LOST').to_numpy()
+        df['Top_Status'].eq('LOST').to_numpy()
+        & df['Front_Status'].eq('LOST').to_numpy()
     )
     unavailable = ~coord_available
 

@@ -103,7 +103,7 @@ def _rts_valid_runs(
 def rts_smooth(df, sigma_a):
     for col in [
         'X_rts', 'Y_rts', 'Z_rts',
-        'RTS_Std_X', 'RTS_Std_Y', 'RTS_Std_Z',
+        'Vis_Std_X_cm', 'Vis_Std_Y_cm', 'Vis_Std_Z_cm',
         'Assigned_Sigma_X', 'Assigned_Sigma_Y', 'Assigned_Sigma_Z',
     ]:
         df[col] = np.nan
@@ -177,7 +177,7 @@ def rts_smooth(df, sigma_a):
         std = np.sqrt(
             np.maximum(np.diagonal(ps, axis1=1, axis2=2)[:, :3], 0.0)
         )
-        df.loc[idx, ['RTS_Std_X', 'RTS_Std_Y', 'RTS_Std_Z']] = std
+        df.loc[idx, ['Vis_Std_X_cm', 'Vis_Std_Y_cm', 'Vis_Std_Z_cm']] = std
         df.loc[
             idx,
             ['Assigned_Sigma_X', 'Assigned_Sigma_Y', 'Assigned_Sigma_Z'],
@@ -193,7 +193,7 @@ def rts_smooth(df, sigma_a):
                 df.loc[recovery_idx, settings.MEAS_COLS].to_numpy(dtype=float)
             )
 
-            df.loc[recovery_idx, ['RTS_Std_X', 'RTS_Std_Y', 'RTS_Std_Z']] = np.nan
+            df.loc[recovery_idx, ['Vis_Std_X_cm', 'Vis_Std_Y_cm', 'Vis_Std_Z_cm']] = np.nan
 
             top_keep = (
                 df.loc[recovery_idx, 'Recovery_Mode'].eq(settings.RECOVERY_TOP_RAY).to_numpy()
@@ -204,40 +204,40 @@ def rts_smooth(df, sigma_a):
             if top_keep.any():
                 top_idx = recovery_idx[top_keep]
                 hidden_std = pd.to_numeric(
-                    df.loc[top_idx, 'Hidden_Axis_Posterior_Std'], errors='coerce'
+                    df.loc[top_idx, 'Hidden_Axis_Std_cm'], errors='coerce'
                 ).to_numpy(dtype=float)
-                df.loc[top_idx, 'RTS_Std_Z'] = hidden_std
+                df.loc[top_idx, 'Vis_Std_Z_cm'] = hidden_std
                 df.loc[top_idx, 'Assigned_Sigma_Z'] = hidden_std
             if front_keep.any():
                 front_idx = recovery_idx[front_keep]
                 hidden_std = pd.to_numeric(
-                    df.loc[front_idx, 'Hidden_Axis_Posterior_Std'], errors='coerce'
+                    df.loc[front_idx, 'Hidden_Axis_Std_cm'], errors='coerce'
                 ).to_numpy(dtype=float)
-                df.loc[front_idx, 'RTS_Std_Y'] = hidden_std
+                df.loc[front_idx, 'Vis_Std_Y_cm'] = hidden_std
                 df.loc[front_idx, 'Assigned_Sigma_Y'] = hidden_std
     return df
 
 
 def assemble(df):
-    df['X_cm'] = df['X_rts']
-    df['Y_cm'] = df['Y_rts']
-    df['Z_cm'] = df['Z_rts']
+    df['X_vis_cm'] = df['X_rts']
+    df['Y_vis_cm'] = df['Y_rts']
+    df['Z_vis_cm'] = df['Z_rts']
 
     top_zone_floor = (
         df['Recovery_Applied'].fillna(False).astype(bool)
         & df['Recovery_Mode'].eq(settings.RECOVERY_TOP_RAY)
         & df['Z_Floor_Applied'].fillna(False).astype(bool)
-        & df['Z_cm'].notna()
+        & df['Z_vis_cm'].notna()
     )
-    df.loc[top_zone_floor, 'Z_cm'] = np.maximum(
-        df.loc[top_zone_floor, 'Z_cm'].to_numpy(dtype=float),
+    df.loc[top_zone_floor, 'Z_vis_cm'] = np.maximum(
+        df.loc[top_zone_floor, 'Z_vis_cm'].to_numpy(dtype=float),
         settings.ZONE_TRACK_CENTER_Z_FLOOR,
     )
 
     blind = df['Coord_State'].isin(['GRAB', 'LOST'])
-    df.loc[blind, ['X_cm', 'Y_cm', 'Z_cm']] = np.nan
+    df.loc[blind, ['X_vis_cm', 'Y_vis_cm', 'Z_vis_cm']] = np.nan
 
-    final_coords = df[['X_cm', 'Y_cm', 'Z_cm']].to_numpy(dtype=float)
+    final_coords = df[['X_vis_cm', 'Y_vis_cm', 'Z_vis_cm']].to_numpy(dtype=float)
     final_available = np.isfinite(final_coords).all(axis=1)
     in_zone_final = np.zeros(len(df), dtype=bool)
     for idx in np.flatnonzero(final_available):
@@ -265,7 +265,7 @@ def validate_post_rts_invariants(df):
         bridge = df['Display_Zone_Bridge'].fillna(False).to_numpy(dtype=bool)
         if (bridge & df['RTS_Input_Valid'].fillna(False).to_numpy(dtype=bool)).any():
             raise RuntimeError('Display-zone bridge entered RTS input.')
-        final_finite = df[['X_cm', 'Y_cm', 'Z_cm']].notna().all(axis=1).to_numpy()
+        final_finite = df[['X_vis_cm', 'Y_vis_cm', 'Z_vis_cm']].notna().all(axis=1).to_numpy()
         if (bridge & final_finite).any():
             raise RuntimeError('Display-zone bridge unexpectedly created final coordinates.')
 
@@ -276,7 +276,7 @@ def validate_post_rts_invariants(df):
     )
     if preserved_recovery.any():
         pre = df.loc[preserved_recovery, settings.MEAS_COLS].to_numpy(dtype=float)
-        final = df.loc[preserved_recovery, ['X_cm', 'Y_cm', 'Z_cm']].to_numpy(dtype=float)
+        final = df.loc[preserved_recovery, ['X_vis_cm', 'Y_vis_cm', 'Z_vis_cm']].to_numpy(dtype=float)
         if not np.allclose(pre, final, rtol=0.0, atol=1e-9, equal_nan=True):
             raise RuntimeError(
                 'A reconstructed coordinate was changed by the final visual 3D RTS.'
@@ -286,11 +286,11 @@ def validate_post_rts_invariants(df):
         df['Recovery_Applied'].fillna(False).astype(bool)
         & df['Recovery_Mode'].eq(settings.RECOVERY_TOP_RAY)
         & df['Z_Floor_Applied'].fillna(False).astype(bool)
-        & df['Z_cm'].notna()
+        & df['Z_vis_cm'].notna()
         & ~df['Coord_State'].isin(['GRAB', 'LOST'])
     )
     bad_floor = top_zone_floor & (
-        pd.to_numeric(df['Z_cm'], errors='coerce') < settings.ZONE_TRACK_CENTER_Z_FLOOR - 1e-9
+        pd.to_numeric(df['Z_vis_cm'], errors='coerce') < settings.ZONE_TRACK_CENTER_Z_FLOOR - 1e-9
     )
     if bad_floor.any():
         raise RuntimeError(

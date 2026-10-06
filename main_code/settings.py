@@ -1,4 +1,4 @@
-"""All constants and settings-file loading; experiment_settings.yaml overrides sections [A] and [B]."""
+"""All constants, day settings loading, trial video search, and checks; the day settings file overrides [A], [B], and [C] (advanced)."""
 
 import copy
 import os
@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 
 # ============================================================
-# [A] Run values (set by experiment_settings.yaml)
+# [A] Run values (day folder, trial number, and day settings file)
 # ============================================================
 DATA_ROOT = None
 OUTPUT_DIR = None
@@ -187,8 +187,8 @@ VEL_SLOW_PHASE_FLUCTUATION_NOTE = (
     '(upper bound estimated from 6 moving videos)'
 )
 
-MEAS_COLS = ['Meas_X', 'Meas_Y', 'Meas_Z']
-RAW_MEAS_COLS = ['Raw_Meas_X', 'Raw_Meas_Y', 'Raw_Meas_Z']
+MEAS_COLS = ['X_cm', 'Y_cm', 'Z_cm']
+RAW_MEAS_COLS = ['Meas_X_cm', 'Meas_Y_cm', 'Meas_Z_cm']
 
 RECOVERY_NONE = 'NONE'
 RECOVERY_TOP_RAY = 'TOP_RAY'
@@ -203,7 +203,7 @@ RESULT_STATE_MAP = {
     'GRAB': 'GRAB',
 }
 
-RAW_COLUMN_RENAME = {
+LEGACY_RAW_COLUMNS = {
     'Time_sec': 'Time_s',
     'Status_Top': 'Top_Status',
     'Status_Front': 'Front_Status',
@@ -234,24 +234,23 @@ RAW_COLUMN_RENAME = {
     'KF_PosStd_Y': 'KF_Std_Y_cm',
     'KF_PosStd_Z': 'KF_Std_Z_cm',
 }
-RAW_COLUMN_RENAME_INVERSE = None
 
 RAW_SHEET_COLUMNS = {
     'Trajectory': [
-        'Frame', 'Time_sec', 'Status_Top', 'Status_Front', 'Top_conf', 'Front_conf',
-        'Top_px_u', 'Top_px_v', 'Front_px_u', 'Front_px_v',
-        'Meas_X', 'Meas_Y', 'Meas_Z', 'Meas_Status', 'Missing_Reason', 'Ray_Gap_cm',
+        'Frame', 'Time_s', 'Top_Status', 'Front_Status', 'Top_Conf', 'Front_Conf',
+        'Top_U_px', 'Top_V_px', 'Front_U_px', 'Front_V_px',
+        'Meas_X_cm', 'Meas_Y_cm', 'Meas_Z_cm', 'Meas_Status', 'Missing_Reason', 'Ray_Gap_cm',
     ],
     'Triangulation': [
-        'Frame', 'Candidate_X', 'Candidate_Y', 'Candidate_Z',
-        'Candidate_ON_X', 'Candidate_ON_Y', 'Candidate_ON_Z',
-        'Candidate_OFF_X', 'Candidate_OFF_Y', 'Candidate_OFF_Z',
+        'Frame', 'Candidate_X_cm', 'Candidate_Y_cm', 'Candidate_Z_cm',
+        'Candidate_ON_X_cm', 'Candidate_ON_Y_cm', 'Candidate_ON_Z_cm',
+        'Candidate_OFF_X_cm', 'Candidate_OFF_Y_cm', 'Candidate_OFF_Z_cm',
         'Geometry_Status_ON', 'Geometry_Status_OFF',
-        'Ray_s_Top_cm', 'Ray_s_Front_cm', 'Ray_Gap_ON_cm', 'Ray_Gap_OFF_cm',
+        'Top_Ray_Dist_cm', 'Front_Ray_Dist_cm', 'Ray_Gap_ON_cm', 'Ray_Gap_OFF_cm',
     ],
     'Online_Filter': [
-        'Frame', 'Track_State', 'KF_Updated', 'Online_X', 'Online_Y', 'Online_Z',
-        'KF_PosStd_X', 'KF_PosStd_Y', 'KF_PosStd_Z',
+        'Frame', 'Track_State', 'KF_Updated', 'KF_X_cm', 'KF_Y_cm', 'KF_Z_cm',
+        'KF_Std_X_cm', 'KF_Std_Y_cm', 'KF_Std_Z_cm',
     ],
 }
 
@@ -281,7 +280,6 @@ def _rebuild_derived():
         'axis': 2, 'value': WATER_SURFACE_Z_CM,
         'normal_to_air': np.array([0.0, 0.0, 1.0]),
     }
-    g['RAW_COLUMN_RENAME_INVERSE'] = {v: k for k, v in RAW_COLUMN_RENAME.items()}
     for key, (stem, ext) in OUTPUT_FILES.items():
         if not OUTPUT_DIR:
             g[key] = None
@@ -529,7 +527,7 @@ def check(stage):
         if path and not os.path.exists(path):
             hint = ''
             if name == 'RAW_EXCEL':
-                hint = ' (run 02_preprocessing first)'
+                hint = ' (run 02_run_trial first)'
             elif name.startswith('MANUAL_CALIB'):
                 hint = ' (run 01_calibration first)'
             problems.append(f'{name} not found: {path}{hint}')

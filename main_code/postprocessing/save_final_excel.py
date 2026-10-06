@@ -82,8 +82,8 @@ def build_legend_df():
 
 
 def build_final_sheets(df, raw_input_columns, preferred_columns, summary_df, config_df):
-    coord_type = df['Result_Coord_Type'].to_numpy()
-    hidden_std = df['Hidden_Axis_Posterior_Std'].to_numpy(dtype=float).copy()
+    coord_type = df['Coord_Type'].to_numpy()
+    hidden_std = df['Hidden_Axis_Std_cm'].to_numpy(dtype=float).copy()
     hidden_std[np.isin(coord_type, ['STEREO', 'NONE'])] = np.nan
     in_zone_col = 'In_Zone_PreRTS' if 'In_Zone_PreRTS' in df.columns else 'In_Zone'
     time_s, _ = _time_seconds(df)
@@ -91,10 +91,10 @@ def build_final_sheets(df, raw_input_columns, preferred_columns, summary_df, con
     result = pd.DataFrame({
         'Frame': df['Frame'].to_numpy(),
         'Time_s': time_s,
-        'X_cm': df['Meas_X'].to_numpy(dtype=float),
-        'Y_cm': df['Meas_Y'].to_numpy(dtype=float),
-        'Z_cm': df['Meas_Z'].to_numpy(dtype=float),
-        'State': df['Result_State'].to_numpy(),
+        'X_cm': df['X_cm'].to_numpy(dtype=float),
+        'Y_cm': df['Y_cm'].to_numpy(dtype=float),
+        'Z_cm': df['Z_cm'].to_numpy(dtype=float),
+        'State': df['State'].to_numpy(),
         'Coord_Type': coord_type,
         'Z_Floor_Applied': df['Z_Floor_Applied'].fillna(False).astype(bool).to_numpy(),
         'Hidden_Axis_Std_cm': hidden_std,
@@ -108,21 +108,21 @@ def build_final_sheets(df, raw_input_columns, preferred_columns, summary_df, con
     plot_aux = pd.DataFrame({
         'Frame': df['Frame'].to_numpy(),
         'Time_s': time_s,
-        'X_vis_cm': df['X_cm'].to_numpy(dtype=float),
-        'Y_vis_cm': df['Y_cm'].to_numpy(dtype=float),
-        'Z_vis_cm': df['Z_cm'].to_numpy(dtype=float),
-        'Vis_Std_X_cm': df['RTS_Std_X'].to_numpy(dtype=float),
-        'Vis_Std_Y_cm': df['RTS_Std_Y'].to_numpy(dtype=float),
-        'Vis_Std_Z_cm': df['RTS_Std_Z'].to_numpy(dtype=float),
+        'X_vis_cm': df['X_vis_cm'].to_numpy(dtype=float),
+        'Y_vis_cm': df['Y_vis_cm'].to_numpy(dtype=float),
+        'Z_vis_cm': df['Z_vis_cm'].to_numpy(dtype=float),
+        'Vis_Std_X_cm': df['Vis_Std_X_cm'].to_numpy(dtype=float),
+        'Vis_Std_Y_cm': df['Vis_Std_Y_cm'].to_numpy(dtype=float),
+        'Vis_Std_Z_cm': df['Vis_Std_Z_cm'].to_numpy(dtype=float),
         'Display_In_Zone': df['Display_In_Zone'].fillna(False).astype(bool).to_numpy(),
-        'Top_Status': df['Status_Top'].to_numpy(),
-        'Front_Status': df['Status_Front'].to_numpy(),
+        'Top_Status': df['Top_Status'].to_numpy(),
+        'Front_Status': df['Front_Status'].to_numpy(),
         'Recovery_Run_ID': df['Recovery_Run_ID'].to_numpy(),
     })
 
     debug_exclude = set(raw_input_columns) | {
-        'X_cm', 'Y_cm', 'Z_cm', 'Raw_Meas_X', 'Raw_Meas_Y', 'Raw_Meas_Z',
-        'RTS_Std_X', 'RTS_Std_Y', 'RTS_Std_Z', 'Hidden_Axis_Posterior_Std',
+        'X_cm', 'Y_cm', 'Z_cm', 'X_vis_cm', 'Y_vis_cm', 'Z_vis_cm', 'Meas_X_cm', 'Meas_Y_cm', 'Meas_Z_cm',
+        'Vis_Std_X_cm', 'Vis_Std_Y_cm', 'Vis_Std_Z_cm', 'Hidden_Axis_Std_cm',
         'Z_Floor_Applied', 'In_Zone', 'In_Zone_PreRTS', 'Display_In_Zone', 'Recovery_Run_ID',
     }
     debug_cols = ['Frame'] + [
@@ -152,12 +152,12 @@ def build_summary_df(df, n_outliers, n_q_runs, q_used_fallback, sigma_a,
                      reconstruction_stats, n_grab):
     coord_lost_frames = int(df['Coord_State'].eq('LOST').sum())
     grab_frames = int(df['Coord_State'].eq('GRAB').sum())
-    unavailable_frames = int(df[['X_cm', 'Y_cm', 'Z_cm']].isna().any(axis=1).sum())
+    unavailable_frames = int(df[['X_vis_cm', 'Y_vis_cm', 'Z_vis_cm']].isna().any(axis=1).sum())
     available_frames = int(len(df) - unavailable_frames)
 
     summary_rows = [
         ('Frames', len(df)),
-        ('Raw valid measurements', int(df['Raw_Meas_X'].notna().sum())),
+        ('Raw valid measurements', int(df['Meas_X_cm'].notna().sum())),
         ('Anchor raw valid frames', int(df['Anchor_Raw_Valid'].sum())),
         ('Hampel outliers', n_outliers),
         ('Q valid runs', n_q_runs),
@@ -320,7 +320,7 @@ def build_config_df(calib_front):
 
 
 PREFERRED_DEBUG_COLUMNS = [
-    'Frame', 'X_cm', 'Y_cm', 'Z_cm', 'Coord_State',
+    'Frame', 'X_vis_cm', 'Y_vis_cm', 'Z_vis_cm', 'Coord_State',
     'In_Zone', 'In_Zone_PreRTS', 'In_Zone_Final',
     'Display_In_Zone', 'Display_Zone_State', 'Display_Zone_Bridge',
     'Display_Zone_Bridge_Type', 'Display_Zone_Bridge_Run_ID',
@@ -333,7 +333,7 @@ PREFERRED_DEBUG_COLUMNS = [
     'Recovery_Right_Used_Index', 'Hidden_Axis_Model', 'Hidden_Episode_ID',
     'Hidden_Axis_Filtered_Value', 'Hidden_Axis_Smoothed_Value',
     'Hidden_Axis_Filtered_Velocity', 'Hidden_Axis_Smoothed_Velocity',
-    'Hidden_Axis_Posterior_Std', 'Hidden_Axis_Initial_Velocity',
+    'Hidden_Axis_Std_cm', 'Hidden_Axis_Initial_Velocity',
     'Hidden_Axis_Initial_Velocity_Std', 'Hidden_Axis_Innovation_Weight',
     'Hidden_Anchor_Weight_Median', 'Hidden_Anchor_Weight_Min',
     'Hidden_Stop_Reason', 'Hidden_Uncertainty_Limit_cm',
@@ -363,21 +363,21 @@ PREFERRED_DEBUG_COLUMNS = [
     'Grab_Inferred_Onset',
     'Filled_Type', 'Front_X_Sanity_Failed',
     'Outlier_Flag', 'Missing_Reason',
-    'Raw_Meas_X', 'Raw_Meas_Y', 'Raw_Meas_Z',
-    'Meas_X', 'Meas_Y', 'Meas_Z',
+    'Meas_X_cm', 'Meas_Y_cm', 'Meas_Z_cm',
+    'X_cm', 'Y_cm', 'Z_cm',
     'X_rts', 'Y_rts', 'Z_rts',
-    'RTS_Std_X', 'RTS_Std_Y', 'RTS_Std_Z',
+    'Vis_Std_X_cm', 'Vis_Std_Y_cm', 'Vis_Std_Z_cm',
     'Assigned_Sigma_X', 'Assigned_Sigma_Y', 'Assigned_Sigma_Z',
     'RTS_Measurement_Source',
-    'Status_Top', 'Status_Front', 'Top_px_u', 'Top_px_v',
-    'Front_px_u', 'Front_px_v', 'Top_conf', 'Front_conf',
-    'Candidate_X', 'Candidate_Y', 'Candidate_Z',
-    'Candidate_ON_X', 'Candidate_ON_Y', 'Candidate_ON_Z',
-    'Candidate_OFF_X', 'Candidate_OFF_Y', 'Candidate_OFF_Z',
+    'Top_Status', 'Front_Status', 'Top_U_px', 'Top_V_px',
+    'Front_U_px', 'Front_V_px', 'Top_Conf', 'Front_Conf',
+    'Candidate_X_cm', 'Candidate_Y_cm', 'Candidate_Z_cm',
+    'Candidate_ON_X_cm', 'Candidate_ON_Y_cm', 'Candidate_ON_Z_cm',
+    'Candidate_OFF_X_cm', 'Candidate_OFF_Y_cm', 'Candidate_OFF_Z_cm',
     'Geometry_Status_ON', 'Geometry_Status_OFF',
     'Track_State', 'Meas_Status', 'KF_Updated',
-    'Online_X', 'Online_Y', 'Online_Z',
-    'KF_PosStd_X', 'KF_PosStd_Y', 'KF_PosStd_Z',
-    'Ray_Gap_cm', 'Ray_s_Top_cm', 'Ray_s_Front_cm',
+    'KF_X_cm', 'KF_Y_cm', 'KF_Z_cm',
+    'KF_Std_X_cm', 'KF_Std_Y_cm', 'KF_Std_Z_cm',
+    'Ray_Gap_cm', 'Top_Ray_Dist_cm', 'Front_Ray_Dist_cm',
     'Ray_Gap_ON_cm', 'Ray_Gap_OFF_cm',
 ]

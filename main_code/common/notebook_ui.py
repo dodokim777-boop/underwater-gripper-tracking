@@ -77,10 +77,10 @@ def ask_trial(day):
     if trials:
         print(f'Trials in {settings.TOP_VIDEO_DIR}/: {_ranges(trials)}')
     while True:
-        text = input('Trial number: ').strip()
-        if text.isdigit():
-            return int(text)
-        print('Enter a number.')
+        found = re.findall(r'\d+', input('Trial number (e.g. 1 for t1 / f1): '))
+        if found:
+            return int(found[-1])
+        print('Enter the trial number, e.g. 1.')
 
 
 def _setup_files(day, exts):
@@ -125,7 +125,7 @@ def _pre(text):
     return widgets.HTML(f'<pre style="margin:0">{html.escape(text)}</pre>')
 
 
-def _edit_full_file(path, day, template_path, view):
+def _edit_full_file(path, day, template_path, view, calib):
     with open(path, 'r', encoding='utf-8') as f:
         text = f.read()
     box = widgets.Textarea(value=text, continuous_update=False,
@@ -133,7 +133,7 @@ def _edit_full_file(path, day, template_path, view):
     box.add_class('settings-editor')
     status = widgets.HTML('Changes are saved when you click outside the box.')
     back = widgets.Button(description='Back to summary')
-    back.on_click(lambda _: _show_summary(path, day, template_path, view))
+    back.on_click(lambda _: _show_summary(path, day, template_path, view, calib))
 
     def save(change):
         try:
@@ -152,27 +152,27 @@ def _edit_full_file(path, day, template_path, view):
     ]
 
 
-def _show_summary(path, day, template_path, view, note=''):
+def _show_summary(path, day, template_path, view, calib, note=''):
     with open(path, 'r', encoding='utf-8') as f:
         cfg = yaml.safe_load(f) or {}
     rows = [('Settings file', path),
             ('Water height [cm]', _get(cfg, 'water', 'surface_z_cm')),
             ('Motor center in ID0 [cm]', _get(cfg, 'setup', 'motor_center_in_id0_cm')),
             ('YOLO class names', _get(cfg, 'models', 'target_class_names'))]
-    for key, label, _, _, _ in FILE_FIELDS:
+    for key, label, _, _, _ in _fields(calib):
         section = 'calibration' if key.endswith('_video') else 'inputs'
         rows.append((label, _get(cfg, section, key)))
     width = max(len(r[0]) for r in rows)
     edit = widgets.Button(description='Edit settings')
     full = widgets.Button(description='Edit full file')
-    edit.on_click(lambda _: _show_form(path, day, template_path, view))
-    full.on_click(lambda _: _edit_full_file(path, day, template_path, view))
+    edit.on_click(lambda _: _show_form(path, day, template_path, view, calib))
+    full.on_click(lambda _: _edit_full_file(path, day, template_path, view, calib))
     text = '\n'.join(f'{k:<{width}} : {v}' for k, v in rows)
     text += (f'\n\n{note}' if note else '') + '\n\nSettings are ready. Run cell 1, or edit them with the buttons.'
     view.children = [_pre(text), widgets.HBox([edit, full])]
 
 
-def _show_form(path, day, template_path, view, intro=''):
+def _show_form(path, day, template_path, view, calib, intro=''):
     exists = os.path.exists(path)
     with open(path if exists else template_path, 'r', encoding='utf-8') as f:
         base = f.read()
@@ -188,7 +188,7 @@ def _show_form(path, day, template_path, view, intro=''):
     classes = widgets.Text(value=', '.join(_get(cfg, 'models', 'target_class_names', default=[])),
                            description='YOLO class names', style=style, layout=wide)
     files = {}
-    for key, label, exts, role, extra in FILE_FIELDS:
+    for key, label, exts, role, extra in _fields(calib):
         section = 'calibration' if key.endswith('_video') else 'inputs'
         options = _setup_files(day, exts)
         current = _get(cfg, section, key, default='')
@@ -196,7 +196,8 @@ def _show_form(path, day, template_path, view, intro=''):
         files[key] = (section, widgets.Combobox(value=value, options=options, ensure_option=False,
                                                 description=label, style=style, layout=wide))
     video = widgets.Checkbox(value=bool(_get(cfg, 'video', 'save_annotated_video', default=True)),
-                             description='Save annotated video', style=style)
+                             description='Save annotated video (video_N.mp4)', indent=False,
+                             layout=widgets.Layout(width='620px', margin='0 0 0 196px'))
     save = widgets.Button(description='Save', button_style='primary')
     status = widgets.HTML()
 
@@ -230,7 +231,7 @@ def _show_form(path, day, template_path, view, intro=''):
         note = f'Saved {datetime.datetime.now():%H:%M:%S}.'
         if missing:
             note += ' Not found in the day folder: ' + ', '.join(missing)
-        _show_summary(path, day, template_path, view, note)
+        _show_summary(path, day, template_path, view, calib, note)
 
     save.on_click(on_save)
     header = (intro + '\n' if intro else '') + 'Settings file: ' + path + ('' if exists else ' (new)')
@@ -245,14 +246,18 @@ def _enable_colab_widgets():
         pass
 
 
-def day_settings(day, template_path):
+def _fields(calib):
+    return [f for f in FILE_FIELDS if calib or not f[0].endswith('_video')]
+
+
+def day_settings(day, template_path, calibration=False):
     _enable_colab_widgets()
     path = settings.day_settings_path(day)
     view = widgets.VBox()
     display(view)
     if os.path.exists(path):
-        _show_summary(path, day, template_path, view)
+        _show_summary(path, day, template_path, view, calibration)
     else:
-        _show_form(path, day, template_path, view,
+        _show_form(path, day, template_path, view, calibration,
                    intro='No settings file for this day yet. Fill in the form and click Save.')
     return path
