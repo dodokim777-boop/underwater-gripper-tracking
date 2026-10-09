@@ -7,6 +7,7 @@ The object is detected with YOLO in the top and front camera videos and triangul
 | `01_calibration` | Camera calibration NPZ from the ArUco marker (R, t) | No | Once after moving a camera | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dodokim777-boop/underwater-gripper-tracking/blob/main/workflow/01_calibration.ipynb) |
 | `02_run_trial` | Steps ①–⑭ for one trial → `raw_N.xlsx`, `video_N.mp4`, `setup_N.png`, `final_N.xlsx` | Yes | Every trial | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dodokim777-boop/underwater-gripper-tracking/blob/main/workflow/02_run_trial.ipynb) |
 | `03_detailed_analysis` | Steps ⑥–⑭ one cell at a time (rerun or inspect postprocessing) → `final_N.xlsx` | No | When needed | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dodokim777-boop/underwater-gripper-tracking/blob/main/workflow/03_detailed_analysis.ipynb) |
+| `04_contact_events` | Mean velocity 1 s and 2 s before each gripper contact → Contact_Events sheet | No | After 02, when contact frames are known | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dodokim777-boop/underwater-gripper-tracking/blob/main/workflow/04_contact_events.ipynb) |
 
 ## Pipeline
 
@@ -45,6 +46,8 @@ MyDrive/<experiment day>/
 
 For the next trial, run cell 1 again. Run `01_calibration` only after moving a camera.
 
+Contact analysis (`04_contact_events`): after watching `video_N.mp4`, enter the first contact frame of each event in the cell 2 form and click **Save** (`result/contact_N.csv`); cell 3 adds the Contact_Events sheet to `final_N.xlsx`.
+
 ## Settings (setup/experiment_settings.yaml)
 
 | Level | Key | Set in |
@@ -61,9 +64,10 @@ For the next trial, run cell 1 again. Run `01_calibration` only after moving a c
 | File | Contents |
 |---|---|
 | `result/raw_N.xlsx` | Trajectory / Triangulation / Online_Filter / Summary / Configuration |
-| `result/final_N.xlsx` | **Result** (pre-smoothing position, state, velocity; use for analysis) / Legend / Plot_Aux (smoothed position for plots) / Summary / Configuration / Debug |
+| `result/final_N.xlsx` | **Result** (pre-smoothing position, state, velocity; use for analysis) / Legend / Plot_Aux (smoothed position for plots) / Summary / Configuration / Debug, plus Contact_Events after `04_contact_events` |
 | `result/video_N.mp4` | Annotated video, top and front side by side (optional) |
 | `result/setup_N.png` | World marker corners projected on the front view |
+| `result/contact_N.csv` | Contact frames entered in `04_contact_events` (Event_ID, Contact_Frame, Criterion, Note) |
 | `result/config.yaml` | Settings of the latest run, without file paths (replaced at every run) |
 | `result/test_raw.xlsx`, `test_video.mp4`, `test_setup.png` | Outputs of the 02 test run (replaced at every test run) |
 | `<NPZ name>_check.png` | Detected marker and world axes, next to each NPZ (from `01_calibration`) |
@@ -77,13 +81,13 @@ The origin is the motor (gripper) center, and the axes follow the floor ID0 mark
 ```
 experiment_settings.yaml     day settings template (cell 0 creates setup/experiment_settings.yaml from it)
 requirements.txt
-workflow/                    notebooks: 01 calibration · 02 run trial · 03 detailed analysis
+workflow/                    notebooks: 01 calibration · 02 run trial · 03 detailed analysis · 04 contact events
 preparation/                 calibration NPZ (run before the pipeline)
 main_code/
   settings.py                default constants, settings-file loading and checks
   common/                    refraction, file utilities, notebook prompts, settings form, result plot
   preprocessing/             steps ①–⑤ (step01_ … step05_), run_preprocessing.py
-  postprocessing/            steps ⑥–⑭ (step06_ … step14_), run_postprocessing.py
+  postprocessing/            steps ⑥–⑭ (step06_ … step14_), run_postprocessing.py, contact_events.py
 reference/                   variables by step, pipeline diagram (drawio + PNG)
 edit_check/                  check that results are unchanged after a code edit
 ```

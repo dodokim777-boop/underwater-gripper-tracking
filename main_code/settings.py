@@ -187,6 +187,11 @@ VEL_SLOW_PHASE_FLUCTUATION_NOTE = (
     '(upper bound estimated from 6 moving videos)'
 )
 
+CONTACT_AVG_WINDOWS_S = (1.0, 2.0)
+CONTACT_SPREAD_HALF_WINDOWS = (3, 5, 7)
+CONTACT_VEL_CHANGE_FLAG_CM_S = 0.3
+CONTACT_K_SPREAD_FLAG_CM_S = 0.1
+
 MEAS_COLS = ['X_cm', 'Y_cm', 'Z_cm']
 RAW_MEAS_COLS = ['Meas_X_cm', 'Meas_Y_cm', 'Meas_Z_cm']
 

@@ -261,3 +261,67 @@ def day_settings(day, template_path, calibration=False):
         _show_form(path, day, template_path, view, calibration,
                    intro='No settings file for this day yet. Fill in the form and click Save.')
     return path
+
+
+def contact_form(csv_path, frame_range=None):
+    import pandas as pd
+    from ..postprocessing.contact_events import read_contacts, write_contacts
+    _enable_colab_widgets()
+    existing = read_contacts(csv_path)
+    rows = []
+    box = widgets.VBox()
+    status = widgets.HTML()
+    narrow, frame_w, wide = widgets.Layout(width='70px'), widgets.Layout(width='110px'), widgets.Layout(width='320px')
+
+    def add_row(event_id=None, frame='', criterion='', note=''):
+        event_id = event_id if event_id is not None else (max([r[0].value for r in rows], default=0) + 1)
+        row = (widgets.IntText(value=int(event_id), layout=narrow),
+               widgets.Text(value=str(frame), placeholder='frame', layout=frame_w),
+               widgets.Text(value=str(criterion), placeholder='how contact was judged', layout=wide),
+               widgets.Text(value=str(note), layout=wide))
+        rows.append(row)
+        box.children = [widgets.HBox(list(r)) for r in rows]
+
+    for _, ev in existing.iterrows():
+        add_row(ev['Event_ID'], ev['Contact_Frame'], ev['Criterion'], ev['Note'])
+    if not rows:
+        add_row()
+
+    def remove_last(_):
+        if len(rows) > 1:
+            rows.pop()
+            box.children = [widgets.HBox(list(r)) for r in rows]
+
+    def save(_):
+        records, bad = [], []
+        for event_id, frame, criterion, note in rows:
+            text = frame.value.strip()
+            if not text and not criterion.value.strip() and not note.value.strip():
+                continue
+            if not text.isdigit():
+                bad.append(f'event {event_id.value}: frame must be one integer')
+                continue
+            n = int(text)
+            if frame_range and not (frame_range[0] <= n <= frame_range[1]):
+                bad.append(f'event {event_id.value}: frame {n} outside {frame_range[0]}-{frame_range[1]}')
+                continue
+            records.append({'Event_ID': event_id.value, 'Contact_Frame': n,
+                            'Criterion': criterion.value.strip(), 'Note': note.value.strip()})
+        if bad:
+            status.value = '<b style="color:#d33">Not saved:</b> ' + html.escape('; '.join(bad))
+            return
+        write_contacts(csv_path, pd.DataFrame(records, columns=['Event_ID', 'Contact_Frame', 'Criterion', 'Note']))
+        status.value = (f'<b style="color:#2a2">Saved</b> {datetime.datetime.now():%H:%M:%S}: '
+                        f'{len(records)} events → {html.escape(csv_path)}. Run cell 3.')
+
+    add = widgets.Button(description='Add event')
+    remove = widgets.Button(description='Remove last')
+    save_btn = widgets.Button(description='Save', button_style='primary')
+    add.on_click(lambda _: add_row())
+    remove.on_click(remove_last)
+    save_btn.on_click(save)
+    header = widgets.HBox([widgets.Label('Event_ID', layout=narrow), widgets.Label('Contact_Frame', layout=frame_w),
+                           widgets.Label('Criterion', layout=wide), widgets.Label('Note', layout=wide)])
+    hint = f'Frame range in Result: {frame_range[0]}-{frame_range[1]}. ' if frame_range else ''
+    display(widgets.VBox([_pre(hint + 'One row per contact event. Contact_Frame is the first contact frame seen in the video.'),
+                          header, box, widgets.HBox([add, remove, save_btn]), status]))
