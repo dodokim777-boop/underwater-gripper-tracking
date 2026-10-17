@@ -67,12 +67,6 @@ def solve_marker_pose(corners, cam_matrix, dist_coeffs):
     return R, tvec.reshape(3, 1)
 
 
-def marker_to_world(R, t, use_wall_transform):
-    if not use_wall_transform:
-        return R, t
-    return R @ settings.R_FW, R @ settings.t_FW + t
-
-
 def draw_check_image(frame, corners, cam_matrix, dist_coeffs, R_world, t_world):
     vis = frame.copy()
     pts = np.asarray(corners, dtype=np.int32)
@@ -89,12 +83,11 @@ def make_calibration_npz(role, overwrite=False):
         K, D = settings.K_MATRIX_TOP, settings.DIST_COEFFS_TOP
         video = settings.CALIB_TOP_VIDEO_PATH or settings.TOP_VIDEO_PATH
         save_path = settings.MANUAL_CALIB_TOP_PATH
-        use_wall, pick_rightmost = False, False
+        pick_rightmost = False
     elif role == 'front':
         K, D = settings.K_MATRIX_FRONT, settings.DIST_COEFFS_FRONT
         video = settings.CALIB_FRONT_VIDEO_PATH or settings.FRONT_VIDEO_PATH
         save_path = settings.MANUAL_CALIB_FRONT_PATH
-        use_wall = bool(settings.CALIB_FRONT_USE_WALL_TRANSFORM)
         pick_rightmost = bool(settings.CALIB_FRONT_PICK_RIGHTMOST)
     else:
         raise ValueError("role must be 'top' or 'front'")
@@ -112,7 +105,6 @@ def make_calibration_npz(role, overwrite=False):
     corners, marker_id = found
 
     R, t = solve_marker_pose(corners, K, D)
-    R_world, t_world = marker_to_world(R, t, use_wall)
 
     meta = dict(
         corners_px=corners,
@@ -123,14 +115,11 @@ def make_calibration_npz(role, overwrite=False):
         timestamp=time.strftime('%Y-%m-%d %H:%M:%S'),
     )
     os.makedirs(os.path.dirname(save_path) or '.', exist_ok=True)
-    if role == 'top':
-        np.savez(save_path, R=R, t=t.reshape(3), **meta)
-    else:
-        np.savez(save_path, R=R, t=t.reshape(3), use_wall_transform=use_wall, **meta)
+    np.savez(save_path, R=R, t=t.reshape(3), **meta)
 
     check_path = os.path.splitext(save_path)[0] + '_check.png'
-    cv2.imwrite(check_path, draw_check_image(frame, corners, K, D, R_world, t_world))
+    cv2.imwrite(check_path, draw_check_image(frame, corners, K, D, R, t))
 
     print(f'[{role}] marker ID {marker_id} detected -> saved {save_path}')
-    print(f'[{role}] camera position in world [cm]: {(-R_world.T @ t_world).ravel().round(2)}')
-    return {'npz': save_path, 'check_image': check_path, 'R_world': R_world, 't_world': t_world}
+    print(f'[{role}] camera position in world [cm]: {(-R.T @ t).ravel().round(2)}')
+    return {'npz': save_path, 'check_image': check_path, 'R_world': R, 't_world': t}

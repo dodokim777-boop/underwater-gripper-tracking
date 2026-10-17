@@ -314,7 +314,6 @@ def build_config_df(calib_front):
         ('Front camera model', settings.FRONT_CAMERA_MODEL),
         ('Front intrinsic source', 'hardcoded'),
         ('Front wall Y [cm]', settings.FRONT_WALL_Y_CM),
-        ('Front use_wall_transform', calib_front.get('use_wall_transform', False)),
     ], columns=['Parameter', 'Value'])
     config_df = pd.concat([config_df, velocity_config_df()], ignore_index=True)
     return config_df

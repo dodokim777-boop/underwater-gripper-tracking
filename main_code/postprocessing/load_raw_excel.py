@@ -5,20 +5,13 @@ import numpy as np
 import pandas as pd
 
 from .. import settings
-from ..common.file_utils import _npz_value
+from ..common.file_utils import _npz_value, reject_wall_transform
 
 
-def _build_calib(R_cm, t_cm, K, dist, marker_to_world=None, metadata=None):
+def _build_calib(R_cm, t_cm, K, dist, metadata=None):
     R_cm = np.asarray(R_cm, dtype=float).reshape(3, 3)
     t_cm = np.asarray(t_cm, dtype=float).reshape(3, 1)
-    if marker_to_world is None:
-        R_w, t_w = R_cm, t_cm
-    else:
-        R_fw, t_fw = marker_to_world
-        R_fw = np.asarray(R_fw, dtype=float).reshape(3, 3)
-        t_fw = np.asarray(t_fw, dtype=float).reshape(3, 1)
-        R_w = R_cm @ R_fw
-        t_w = R_cm @ t_fw + t_cm
+    R_w, t_w = R_cm, t_cm
 
     rvec, _ = cv2.Rodrigues(R_w)
     calib = {
@@ -50,7 +43,7 @@ def load_calib_top(path=None):
         }
         calib = _build_calib(
             data['R'], data['t'], settings.K_MATRIX_TOP, settings.DIST_COEFFS_TOP,
-            marker_to_world=None, metadata=metadata,
+            metadata=metadata,
         )
     except FileNotFoundError as exc:
         raise FileNotFoundError(f'Top dry-calibration NPZ required: {path}') from exc
@@ -70,8 +63,7 @@ def load_calib_front(path=None):
         data = np.load(path, allow_pickle=False)
         if 'R' not in data.files or 't' not in data.files:
             raise KeyError('NPZ must contain R and t')
-        use_wall = bool(_npz_value(data, ('use_wall_transform',), False))
-        marker_to_world = (settings.R_FW, settings.t_FW) if use_wall else None
+        reject_wall_transform(data, path)
         stored_model = str(_npz_value(data, ('camera_model',), settings.FRONT_CAMERA_MODEL))
         metadata = {
             'camera_role': 'front',
@@ -81,11 +73,10 @@ def load_calib_front(path=None):
                 data, ('intrinsic_rms_px', 'rms', 'reprojection_rms_px'), np.nan
             ),
             'intrinsic_source': f'hardcoded: {settings.FRONT_CAMERA_MODEL}',
-            'use_wall_transform': use_wall,
         }
         calib = _build_calib(
             data['R'], data['t'], settings.K_MATRIX_FRONT, settings.DIST_COEFFS_FRONT,
-            marker_to_world=marker_to_world, metadata=metadata,
+            metadata=metadata,
         )
     except FileNotFoundError as exc:
         raise FileNotFoundError(f'Front dry-calibration NPZ required: {path}') from exc
@@ -93,7 +84,6 @@ def load_calib_front(path=None):
         raise RuntimeError(f'Failed to load front calibration NPZ: {path}: {exc}') from exc
     print(
         f"front calib: {path} | model={calib.get('camera_model', settings.FRONT_CAMERA_MODEL)} | "
-        f"use_wall_transform={calib.get('use_wall_transform', False)} | "
         f"intrinsic={calib.get('intrinsic_source', 'hardcoded')}"
     )
     return calib

@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 from .. import settings
-from ..common.file_utils import _npz_value
+from ..common.file_utils import _npz_value, reject_wall_transform
 
 
 try:
@@ -42,19 +42,12 @@ def detect_marker_pose(frame, cam_matrix, dist_coeffs, select='first'):
     return R_mat, tvec.reshape(3, 1)
 
 
-def build_world_calib(
-    R_cm, t_cm, cam_matrix, dist_coeffs, marker_to_world=None, metadata=None
-):
+def build_world_calib(R_cm, t_cm, cam_matrix, dist_coeffs, metadata=None):
     R_cm = np.asarray(R_cm, dtype=float).reshape(3, 3)
     t_cm = np.asarray(t_cm, dtype=float).reshape(3, 1)
     cam_matrix = np.asarray(cam_matrix, dtype=float).reshape(3, 3)
     dist_coeffs = np.asarray(dist_coeffs, dtype=float).reshape(1, -1)
-    if marker_to_world is None:
-        R_w, t_w = R_cm, t_cm
-    else:
-        R_fw, t_fw = marker_to_world
-        R_w = R_cm @ R_fw
-        t_w = R_cm @ t_fw + t_cm
+    R_w, t_w = R_cm, t_cm
     rvec, _ = cv2.Rodrigues(R_w)
     tvec = t_w.reshape(3, 1)
     P = cam_matrix @ np.hstack((R_w, tvec))
@@ -112,19 +105,17 @@ def _load_front_calib(path):
     data = np.load(path, allow_pickle=False)
     if 'R' not in data.files or 't' not in data.files:
         raise KeyError(f"{path}: R and t are required.")
-    use_wall = bool(_npz_value(data, ('use_wall_transform',), False))
-    marker_to_world = (settings.R_FW, settings.t_FW) if use_wall else None
+    reject_wall_transform(data, path)
     calib = build_world_calib(
         data['R'], np.asarray(data['t']).reshape(3, 1),
         settings.K_MATRIX_FRONT, settings.DIST_COEFFS_FRONT,
-        marker_to_world=marker_to_world,
         metadata={
             'camera_role': 'front',
             'camera_model': settings.FRONT_CAMERA_MODEL,
             'intrinsic_source': 'hardcoded',
         },
     )
-    return calib, use_wall
+    return calib
 
 
 def _calib_summary(name, calib):
@@ -143,7 +134,6 @@ def _calib_summary(name, calib):
 def load_calibrations(dataset_is_wet):
     calib_top = None
     calib_front = None
-    front_use_wall_transform = None
     calib_errors = []
     try:
         calib_top = _load_top_calib(settings.MANUAL_CALIB_TOP_PATH)
@@ -152,11 +142,8 @@ def load_calibrations(dataset_is_wet):
         calib_errors.append(f"top: {exc}")
 
     try:
-        calib_front, front_use_wall_transform = _load_front_calib(settings.MANUAL_CALIB_FRONT_PATH)
-        print(
-            f"Front calibration loaded: {settings.MANUAL_CALIB_FRONT_PATH} | "
-            f"use_wall_transform={front_use_wall_transform}"
-        )
+        calib_front = _load_front_calib(settings.MANUAL_CALIB_FRONT_PATH)
+        print(f"Front calibration loaded: {settings.MANUAL_CALIB_FRONT_PATH}")
     except Exception as exc:
         calib_errors.append(f"front: {exc}")
 
@@ -170,4 +157,4 @@ def load_calibrations(dataset_is_wet):
         _calib_summary('top', calib_top)
     if calib_front is not None:
         _calib_summary('front', calib_front)
-    return calib_top, calib_front, front_use_wall_transform
+    return calib_top, calib_front

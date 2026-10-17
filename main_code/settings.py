@@ -39,7 +39,6 @@ FRONT_TIME_OFFSET_SEC = 0.0
 CALIB_TOP_VIDEO_PATH = None
 CALIB_FRONT_VIDEO_PATH = None
 CALIB_FRAME_INDEX = 0
-CALIB_FRONT_USE_WALL_TRANSFORM = False
 CALIB_FRONT_PICK_RIGHTMOST = True
 
 # ============================================================
@@ -70,11 +69,6 @@ DIST_COEFFS_FRONT = np.array([
     [1.51047198e-02, -8.55712758e-03, -1.38100761e-03,
      1.74587731e-05, 5.72933769e-03]
 ], dtype=float)
-
-R_FW = np.array([[1, 0, 0],
-                 [0, 0, 1],
-                 [0, -1, 0]], dtype=float)
-t_FW = np.array([52.0, -15.5, -10]).reshape(3, 1)
 
 N_AIR = 1.0
 N_WATER = 1.333
@@ -302,7 +296,7 @@ _rebuild_derived()
 
 _DEFAULTS = {
     k: copy.deepcopy(v) for k, v in globals().items()
-    if (k.isupper() or k == 't_FW') and not k.startswith('_')
+    if k.isupper() and not k.startswith('_')
 }
 
 
@@ -320,7 +314,6 @@ _CONFIG_MAP = {
     ('calibration', 'top_video'): 'CALIB_TOP_VIDEO_PATH',
     ('calibration', 'front_video'): 'CALIB_FRONT_VIDEO_PATH',
     ('calibration', 'frame_index'): 'CALIB_FRAME_INDEX',
-    ('calibration', 'front_use_wall_transform'): 'CALIB_FRONT_USE_WALL_TRANSFORM',
     ('calibration', 'front_pick_rightmost'): 'CALIB_FRONT_PICK_RIGHTMOST',
     ('video', 'expected_resolution'): 'EXPECTED_RESOLUTION',
     ('video', 'expected_fps'): 'EXPECTED_FPS',
@@ -337,8 +330,6 @@ _CONFIG_MAP = {
     ('setup', 'marker_size_cm'): 'MARKER_SIZE_CM',
     ('setup', 'motor_center_in_id0_cm'): 'MOTOR_CENTER_IN_ID0_CM',
     ('setup', 'front_wall_y_cm'): 'FRONT_WALL_Y_CM',
-    ('setup', 'front_wall_marker_R'): 'R_FW',
-    ('setup', 'front_wall_marker_t'): 't_FW',
 }
 
 _PATH_KEYS = (
@@ -588,7 +579,6 @@ def print_summary(stage=None):
             ('Calibration top video', CALIB_TOP_VIDEO_PATH or TOP_VIDEO_PATH),
             ('Calibration front video', CALIB_FRONT_VIDEO_PATH or FRONT_VIDEO_PATH),
             ('Calibration frame', CALIB_FRAME_INDEX),
-            ('Front wall marker transform', CALIB_FRONT_USE_WALL_TRANSFORM),
         ]
     width = max(len(r[0]) for r in rows)
     for k, v in rows:

@@ -30,7 +30,6 @@ calibration:
   top_video: "setup/top_calib.mp4"              # marker video of the top camera
   front_video: "setup/front_calib.mp4"          # marker video of the front camera
   frame_index: 0                                # frame where the marker is clearly visible
-  front_use_wall_transform: false               # true: front camera sees the wall marker, not the floor marker
   front_pick_rightmost: true                    # use the rightmost marker if two are visible
 
 
@@ -55,10 +54,6 @@ setup:
   marker_size_cm: 15.0                          # ArUco marker side (DICT_4X4_50) [cm]
   motor_center_in_id0_cm: [-26.5, 28.0, 17.1]   # gripper (motor) center in ID0 coordinates = output origin [cm]
   front_wall_y_cm: -11.6                        # front wall (refraction plane) Y [cm]
-  front_wall_marker_R: [[1, 0, 0],              # wall marker frame -> world, used only if front_use_wall_transform
-                        [0, 0, 1],
-                        [0, -1, 0]]
-  front_wall_marker_t: [52.0, -15.5, -10.0]
 
 models:
   top_class_names: ["whitecube"]                # class of the top YOLO model (case, space, underscore ignored)

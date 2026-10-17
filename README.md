@@ -41,7 +41,7 @@ MyDrive/<experiment day>/
    - Later runs: the current settings are shown. **Edit settings** opens the form again; **Edit full file** opens the whole file (cameras, tank, algorithm constants).
 3. **Cell 1** asks for the trial number, finds the videos with that number in `Top/` and `Front/`, and checks files and values.
 4. **Cell 2** (02) runs a short test. Check `result/test_setup.png`.
-5. **Cell 3** (02) runs the whole trial: preprocessing and postprocessing.
+5. **Cell 3** (02) runs the whole trial: preprocessing and postprocessing. **Cell 5** (02) runs several trials in a row (e.g. `2-10`), skipping trials that already have `final_N.xlsx`.
 6. **Cell 4** (02) plots the result: stereo points (black), top-only recovered (blue), front-only recovered (green), smoothed display line (orange), work zone (yellow), GRAB (red).
 
 For the next trial, run cell 1 again. Run `01_calibration` only after moving a camera.
@@ -56,7 +56,7 @@ Contact analysis (`04_contact_events`): after watching `video_N.mp4`, enter the 
 | Check every day | `inputs.calib_*_npz`, `inputs.*_weights`, `calibration.top_video`, `calibration.front_video` | Cell 0 form (files found in `setup/`) |
 | Check every day | `setup.motor_center_in_id0_cm`, `models.top_class_names`, `models.front_class_names` (one YOLO class name per camera), `video.save_annotated_video` | Cell 0 form |
 | Rarely | `sync.*_time_offset_sec` (0 for frame-aligned videos), `calibration.frame_index` | Edit full file |
-| Equipment change | `cameras.*` (K, dist, model), `setup.front_wall_y_cm`, `setup.marker_size_cm`, `setup.front_wall_marker_*` | Edit full file |
+| Equipment change | `cameras.*` (K, dist, model), `setup.front_wall_y_cm`, `setup.marker_size_cm` | Edit full file |
 | Modify with caution | `advanced` (section [C] of `main_code/settings.py`; changing them changes the results) | Edit full file |
 
 ## Outputs
@@ -85,6 +85,7 @@ workflow/                    notebooks: 01 calibration · 02 run trial · 03 det
 preparation/                 calibration NPZ (run before the pipeline)
 main_code/
   settings.py                default constants, settings-file loading and checks
+  run_trial.py               one trial (①–⑭) or a batch of trials in a row
   common/                    refraction, file utilities, notebook prompts, settings form, result plot
   preprocessing/             steps ①–⑤ (step01_ … step05_), run_preprocessing.py
   postprocessing/            steps ⑥–⑭ (step06_ … step14_), run_postprocessing.py, contact_events.py

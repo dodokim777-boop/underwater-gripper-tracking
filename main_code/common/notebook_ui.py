@@ -83,6 +83,26 @@ def ask_trial(day):
         print('Enter the trial number, e.g. 1.')
 
 
+def ask_trials(day):
+    from ..run_trial import parse_trials
+    trials = settings.available_trials(day)
+    if trials:
+        print(f'Trials in {settings.TOP_VIDEO_DIR}/: {_ranges(trials)}')
+    while True:
+        try:
+            chosen = parse_trials(input('Trials to run (e.g. 2-10 or 2,4,7): '))
+        except ValueError as exc:
+            print(exc)
+            continue
+        if chosen:
+            missing = [t for t in chosen if trials and t not in trials]
+            if missing:
+                print(f'No video in {settings.TOP_VIDEO_DIR}/ for trials {_ranges(missing)}; they will be reported as FAILED.')
+            print(f'Running {len(chosen)} trials: {_ranges(chosen)}')
+            return chosen
+        print('Enter at least one trial number.')
+
+
 def _setup_files(day, exts):
     folder = os.path.join(day, settings.SETUP_DIR)
     return [f'{settings.SETUP_DIR}/{n}' for n in sorted(os.listdir(folder))

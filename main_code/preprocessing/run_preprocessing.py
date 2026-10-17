@@ -36,7 +36,7 @@ def run_preprocessing(max_frames=None):
         f"refraction={'ON' if enable_refraction else 'OFF'}"
     )
 
-    calib_top, calib_front, front_use_wall_transform = load_calibration.load_calibrations(dataset_is_wet)
+    calib_top, calib_front = load_calibration.load_calibrations(dataset_is_wet)
 
     print(
         f"jump gate = min({settings.JUMP_LIMIT_CM_PER_FRAME:.1f} cm/frame × Δk, "

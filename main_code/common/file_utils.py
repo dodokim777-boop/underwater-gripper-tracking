@@ -13,6 +13,11 @@ def _npz_value(data, keys, default=None):
     return default
 
 
+def reject_wall_transform(data, path):
+    if bool(_npz_value(data, ('use_wall_transform',), False)):
+        raise ValueError(f'{path} was made with the removed front wall-marker option. Rebuild it with 01_calibration.')
+
+
 def format_workbook_sheets(workbook, wide_text_columns=('Description', 'Value', 'Criterion', 'Note')):
     from openpyxl.styles import Font, Alignment
     from openpyxl.utils import get_column_letter
