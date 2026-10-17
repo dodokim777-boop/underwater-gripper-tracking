@@ -7,6 +7,12 @@ from .. import settings
 from ..common.file_utils import format_workbook_sheets
 
 
+def _class_names_text():
+    from .step01_detect_object import target_class_names
+    top, front = target_class_names('top'), target_class_names('front')
+    return ', '.join(top) if top == front else f"top: {', '.join(top)}; front: {', '.join(front)}"
+
+
 def _safe_ratio(numerator, denominator):
     return float(numerator) / float(denominator) if denominator else np.nan
 
@@ -127,7 +133,7 @@ def build_config_df(dataset_is_wet, enable_refraction, video, tracker_3d,
         ('Jump absolute cap [cm]', tracker_3d.jump_limit_abs_cm),
         ('Mahalanobis chi2 threshold', settings.GATE_CHI2),
         ('Ray gap max [cm]', settings.RAY_GAP_MAX_CM),
-        ('Target class names', ', '.join(settings.TARGET_CLASS_NAMES)),
+        ('Target class names', _class_names_text()),
         ('Top target class id', cls_top),
         ('Front target class id', cls_front),
         ('Confirm N stereo-candidate attempts', settings.CONFIRM_N),

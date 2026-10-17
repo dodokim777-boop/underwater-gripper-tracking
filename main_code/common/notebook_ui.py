@@ -104,12 +104,25 @@ def _set_value(text, key, value):
     return pattern.sub(lambda m: f'{m.group(1)}{key}: {value}' + (f'  {m.group(2).strip()}' if m.group(2) else ''), text)
 
 
+INSERT_AFTER = {'top_class_names': 'target_class_names', 'front_class_names': 'top_class_names'}
+
+
 def _apply_values(text, values):
     for key, value in values.items():
-        text = _set_value(text, key, value)
-        if text is None:
+        updated = _set_value(text, key, value)
+        if updated is None and key in INSERT_AFTER:
+            anchor = re.search(rf'^([ \t]*){re.escape(INSERT_AFTER[key])}:.*$', text, re.M)
+            if anchor:
+                updated = text[:anchor.end()] + f'\n{anchor.group(1)}{key}: {value}' + text[anchor.end():]
+        if updated is None:
             return None
+        text = updated
     return text
+
+
+def _class_names(cfg, role):
+    names = _get(cfg, 'models', f'{role}_class_names') or _get(cfg, 'models', 'target_class_names', default=[])
+    return list(names)
 
 
 def _get(cfg, *keys, default=None):
@@ -158,7 +171,8 @@ def _show_summary(path, day, template_path, view, calib, note=''):
     rows = [('Settings file', path),
             ('Water height [cm]', _get(cfg, 'water', 'surface_z_cm')),
             ('Motor center in ID0 [cm]', _get(cfg, 'setup', 'motor_center_in_id0_cm')),
-            ('YOLO class names', _get(cfg, 'models', 'target_class_names'))]
+            ('Top YOLO class', _class_names(cfg, 'top')),
+            ('Front YOLO class', _class_names(cfg, 'front'))]
     for key, label, _, _, _ in _fields(calib):
         section = 'calibration' if key.endswith('_video') else 'inputs'
         rows.append((label, _get(cfg, section, key)))
@@ -185,8 +199,8 @@ def _show_form(path, day, template_path, view, calib, intro=''):
     motor = [widgets.FloatText(value=float(v), layout=widgets.Layout(width='110px'))
              for v in _get(cfg, 'setup', 'motor_center_in_id0_cm', default=[0.0, 0.0, 0.0])]
     motor_row = widgets.HBox([widgets.Label('Motor center X, Y, Z [cm]', layout=widgets.Layout(width='196px'))] + motor)
-    classes = widgets.Text(value=', '.join(_get(cfg, 'models', 'target_class_names', default=[])),
-                           description='YOLO class names', style=style, layout=wide)
+    classes = {role: widgets.Text(value=', '.join(_class_names(cfg, role)), description=f'{role.capitalize()} YOLO class',
+                                  style=style, layout=wide) for role in ('top', 'front')}
     files = {}
     for key, label, exts, role, extra in _fields(calib):
         section = 'calibration' if key.endswith('_video') else 'inputs'
@@ -207,14 +221,15 @@ def _show_form(path, day, template_path, view, calib, intro=''):
         except ValueError:
             status.value = '<b style="color:#d33">Enter the water height.</b>'
             return
-        names = [c.strip() for c in classes.value.split(',') if c.strip()]
-        if not names:
-            status.value = '<b style="color:#d33">Enter at least one YOLO class name.</b>'
+        names = {role: box.value.strip() for role, box in classes.items()}
+        if not all(names.values()) or any(',' in n for n in names.values()):
+            status.value = '<b style="color:#d33">Enter one YOLO class name for each camera.</b>'
             return
         values = {
             'surface_z_cm': f'{water_cm:g}',
             'motor_center_in_id0_cm': '[' + ', '.join(f'{w.value:g}' for w in motor) + ']',
-            'target_class_names': json.dumps(names, ensure_ascii=False),
+            'top_class_names': json.dumps([names['top']], ensure_ascii=False),
+            'front_class_names': json.dumps([names['front']], ensure_ascii=False),
             'save_annotated_video': 'true' if video.value else 'false',
         }
         for key, (_, box) in files.items():
@@ -235,7 +250,7 @@ def _show_form(path, day, template_path, view, calib, intro=''):
 
     save.on_click(on_save)
     header = (intro + '\n' if intro else '') + 'Settings file: ' + path + ('' if exists else ' (new)')
-    view.children = [_pre(header), water, motor_row, classes] + [b for _, b in files.values()] + [video, save, status]
+    view.children = [_pre(header), water, motor_row, classes['top'], classes['front']] + [b for _, b in files.values()] + [video, save, status]
 
 
 def _enable_colab_widgets():

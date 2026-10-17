@@ -22,16 +22,24 @@ def resolve_class_id(model, wanted=None):
     names = {int(k): norm(v) for k, v in model.names.items()}
     wanted_norm = {norm(w) for w in wanted}
     hits = [k for k, v in names.items() if v in wanted_norm]
-    if len(hits) != 1:
-        raise ValueError(f'Target class not found: wanted {wanted}, model classes {model.names}')
+    if not hits:
+        raise ValueError(f'Target class not found: wanted {list(wanted)}, model classes {model.names}')
+    if len(hits) > 1:
+        raise ValueError(f'Several model classes match {list(wanted)}: {model.names}. '
+                         'Set one class per camera in the cell 0 form (Top / Front YOLO class).')
     return hits[0]
+
+
+def target_class_names(role):
+    names = settings.TOP_TARGET_CLASS_NAMES if role == 'top' else settings.FRONT_TARGET_CLASS_NAMES
+    return tuple(names) if names else tuple(settings.TARGET_CLASS_NAMES)
 
 
 def load_models():
     from ultralytics import YOLO
     model_top, model_front = YOLO(settings.TOP_MODEL_PATH), YOLO(settings.FRONT_MODEL_PATH)
-    cls_top = resolve_class_id(model_top)
-    cls_front = resolve_class_id(model_front)
+    cls_top = resolve_class_id(model_top, target_class_names('top'))
+    cls_front = resolve_class_id(model_front, target_class_names('front'))
     print(f'Target class: top={cls_top} {model_top.names[cls_top]!r}, '
           f'front={cls_front} {model_front.names[cls_front]!r}')
     return model_top, model_front, cls_top, cls_front

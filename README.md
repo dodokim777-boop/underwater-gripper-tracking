@@ -54,7 +54,7 @@ Contact analysis (`04_contact_events`): after watching `video_N.mp4`, enter the 
 |---|---|---|
 | Every day | `water.surface_z_cm` | Cell 0 form |
 | Check every day | `inputs.calib_*_npz`, `inputs.*_weights`, `calibration.top_video`, `calibration.front_video` | Cell 0 form (files found in `setup/`) |
-| Check every day | `setup.motor_center_in_id0_cm`, `models.target_class_names`, `video.save_annotated_video` | Cell 0 form |
+| Check every day | `setup.motor_center_in_id0_cm`, `models.top_class_names`, `models.front_class_names` (one YOLO class name per camera), `video.save_annotated_video` | Cell 0 form |
 | Rarely | `sync.*_time_offset_sec` (0 for frame-aligned videos), `calibration.frame_index` | Edit full file |
 | Equipment change | `cameras.*` (K, dist, model), `setup.front_wall_y_cm`, `setup.marker_size_cm`, `setup.front_wall_marker_*` | Edit full file |
 | Modify with caution | `advanced` (section [C] of `main_code/settings.py`; changing them changes the results) | Edit full file |

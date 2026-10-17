@@ -61,7 +61,8 @@ setup:
   front_wall_marker_t: [52.0, -15.5, -10.0]
 
 models:
-  target_class_names: ["whitecube"]             # YOLO class name (case, space, underscore ignored)
+  top_class_names: ["whitecube"]                # class of the top YOLO model (case, space, underscore ignored)
+  front_class_names: ["whitecube"]              # class of the front YOLO model
 
 video:
   expected_resolution: [1920, 1080]             # stop if different

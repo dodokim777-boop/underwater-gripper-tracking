@@ -85,6 +85,8 @@ INTERFACE_TOP = None
 MOTOR_CENTER_IN_ID0_CM = np.array([-26.5, 28.0, 17.1], dtype=float)
 
 TARGET_CLASS_NAMES = ('whitecube',)
+TOP_TARGET_CLASS_NAMES = None
+FRONT_TARGET_CLASS_NAMES = None
 
 # ============================================================
 # [C] Algorithm constants (modify with caution: results change)
@@ -324,6 +326,8 @@ _CONFIG_MAP = {
     ('video', 'expected_fps'): 'EXPECTED_FPS',
     ('video', 'save_annotated_video'): 'SAVE_ANNOTATED_VIDEO',
     ('models', 'target_class_names'): 'TARGET_CLASS_NAMES',
+    ('models', 'top_class_names'): 'TOP_TARGET_CLASS_NAMES',
+    ('models', 'front_class_names'): 'FRONT_TARGET_CLASS_NAMES',
     ('cameras', 'top', 'model'): 'TOP_CAMERA_MODEL',
     ('cameras', 'top', 'K'): 'K_MATRIX_TOP',
     ('cameras', 'top', 'dist'): 'DIST_COEFFS_TOP',
